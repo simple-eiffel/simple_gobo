@@ -1,190 +1,86 @@
-[![GitHub Actions](https://github.com/gobo-eiffel/gobo/actions/workflows/github-ci.yml/badge.svg)](https://github.com/gobo-eiffel/gobo/actions/workflows/github-ci.yml)
-[![GitLab CI/CD](https://gitlab.com/ebezault/gobo/badges/master/pipeline.svg?key_text=GitLab+CI/CD&key_width=85)](https://gitlab.com/ebezault/gobo/-/pipelines)
-[![Azure Pipelines](https://dev.azure.com/ericb0733/gobo/_apis/build/status/gobo?branchName=master)](https://dev.azure.com/ericb0733/gobo/_build?definitionId=1&branchName=master)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/simple-eiffel/claude_eiffel_op_docs/main/artwork/LOGO.png" alt="simple_ library logo" width="400">
+</p>
 
-# Gobo Eiffel Project
+# simple_gobo
 
-One of the main concerns of the *Gobo Eiffel Project* is to provide
-the Eiffel community with Eiffel tools and libraries that are
-[free](License.md) and [portable](./library/common/doc/portability/index.html)
-across various Eiffel compilers available on the market.
-That way, you can still use your favorite Eiffel compiler while taking
-advantage of the goodies included in *Gobo Eiffel*.
+**[Documentation](https://simple-eiffel.github.io/simple_gobo/)** | **[GitHub](https://github.com/simple-eiffel/simple_gobo)** | **[Upstream Gobo](https://github.com/gobo-project/gobo)**
 
-The software included in this package is copyrighted freeware distributed
-under the terms and conditions of the MIT License as specified in
-[License](License.md) file.
-*Gobo Eiffel* is a multi-developer open-source project whose development
-is hosted at
-[Github](http://github.com/gobo-eiffel/gobo)
-while the official site (for stable releases) is located at
-[gobosoft.com](https://www.gobosoft.com). This package also contains files
-from the [Boehm GC](https://github.com/ivmai/bdwgc) project which is also
-released under a MIT-style [license](https://github.com/bdwgc/bdwgc/blob/master/LICENSE), and is bundled with the [Zig toolchain](https://ziglang.org/) which is also released under a MIT-style [license](https://github.com/ziglang/zig/blob/master/LICENSE).
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Eiffel](https://img.shields.io/badge/Eiffel-25.02-blue.svg)](https://www.eiffel.org/)
+[![Gobo](https://img.shields.io/badge/Gobo-2024-green.svg)](https://github.com/gobo-project/gobo)
+[![SCOOP](https://img.shields.io/badge/SCOOP-inline%20separate-orange.svg)]()
 
-*Gobo Eiffel* already consists of nineteen Eiffel libraries:
+GitHub Gobo (2024) integration for the Simple Eiffel ecosystem, providing SCOOP inline separate parsing support.
 
-* [Gobo Eiffel Argument Library](./library/argument/doc/index.html)
-* Gobo Eiffel Kernel Library
-* Gobo Eiffel Language Server Protocol Library
-* Gobo Eiffel Lexical Library
-* [Gobo Eiffel Math Library](./library/math/doc/index.html)
-* Gobo Eiffel Parse Library
-* Gobo Eiffel Pattern Library
-* Gobo Eiffel Regexp Library
-* Gobo Eiffel Storable Library
-* [Gobo Eiffel String Library](./library/string/doc/index.html)
-* [Gobo Eiffel Structure Library](./library/structure/doc/index.html)
-* Gobo Eiffel Test Library
-* Gobo Eiffel Thread Library
-* [Gobo Eiffel Time Library](./library/time/doc/index.html)
-* [Gobo Eiffel Tools Library](./library/tools/doc/index.html)
-* Gobo Eiffel Utility Library
-* [Gobo Eiffel XML Library](./library/xml/doc/index.html)
-* [Gobo Eiffel XPath Library](./library/xpath/doc/index.html)
-* [Gobo Eiffel XSLT Library](./library/xslt/doc/index.html)
+Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
-and thirteen utilities:
+## Status
 
-* [Gobo Eiffel Ant](./tool/geant/doc/overview.html) (geant)
-* [Gobo Eiffel Compiler](./tool/gec/doc/index.html) (gec)
-* [Gobo Eiffel C Compilation](./tool/gecc/doc/index.html) (gecc)
-* [Gobo Eiffel Cop](./tool/gecop/doc/index.html) (gecop)
-* [Gobo Eiffel Doc](./tool/gedoc/doc/index.html) (gedoc)
-* [Gobo Eiffel Image](./tool/image/doc/index.html) (geimage)
-* Gobo Eiffel Language Server (gelsp)
-* [Gobo Eiffel Lex](./tool/gelex/doc/index.html) (gelex)
-* [Gobo Eiffel Lint](./tool/gelint/doc/index.html) (gelint)
-* [Gobo Eiffel Preprocessor](./tool/gepp/doc/index.html) (gepp)
-* [Gobo Eiffel Test](./tool/getest/doc/index.html) (getest)
-* [Gobo Eiffel XSLT Processor](./tool/gexslt/doc/index.html) (gexslt)
-* [Gobo Eiffel Yacc](./tool/geyacc/doc/index.html) (geyacc)
+**Production** - Required dependency for SCOOP-capable parsing
 
-Note that these utilities are not needed if you just want to use the
-library classes provided in this package.
+## Overview
 
-## Eiffel compilers
+EiffelStudio 25.02 bundles Gobo from 2021, which lacks support for modern SCOOP syntax. GitHub Gobo (2024) includes full support for inline separate blocks:
 
-The supported Eiffel compilers, in alphabetical order, are:
+```eiffel
+-- SCOOP inline separate (ECMA-367 3rd edition)
+separate a_worker as l_worker do
+    l_worker.do_work
+end
 
-* Gobo Eiffel Compiler (gec) 25.12.04
-* ISE Eiffel 25.02.9.8732 (Classic and .NET)
+-- Multiple region variant
+separate a_w1 as l_w1, a_w2 as l_w2 do
+    l_w1.sync_with (l_w2)
+end
+```
 
-For more details about the supported Eiffel compilers, please see the file
-[Release notes](./Release_notes.md).
-This software might work with other Eiffel compilers and/or other compiler
-versions, however no test has been made yet.
-To have a better understanding of the way this software has been designed
-and implemented, you can also have a look at
-[portability issues](./library/common/doc/portability/index.html).
+## Features
 
-## Platforms
+- **SCOOP Inline Separate**: Full grammar support for `separate...as...do...end`
+- **ET_INLINE_SEPARATE_* Classes**: 9 AST classes for SCOOP constructs
+- **EiffelStudio Compatible**: Use with `GOBO_EIFFEL=ise`
+- **Latest Gobo**: 2024 version with all language features
 
-The software provided in this distribution should work on any platform
-where supported Eiffel compilers are available. However this software
-has only been tested under Windows 11, Linux Ubuntu and MacOS.
-Since most Eiffel compilers use the notation `$NAME` for environment
-variables in their ECF files (or equivalent), this convention has been
-used instead of the Windowish `%NAME%`. Likewise, the directory separator
-used throughout this distribution is `/`, following Unix/Linux convention
-instead of the Windows `\` separator.
+## Installation
 
-To install this package, please follow the instructions below:
+1. Set environment variables:
+```bash
+export SIMPLE_GOBO=/path/to/simple_gobo
+export GOBO_LIBRARY=$SIMPLE_GOBO/library
+export GOBO_EIFFEL=ise
+```
 
-### On Windows
+2. Add to ECF:
+```xml
+<library name="gobo_regexp" location="$GOBO_LIBRARY/regexp/library.ecf"/>
+<library name="gobo_tools" location="$GOBO_LIBRARY/tools/library.ecf"/>
+```
 
-* [Download](https://github.com/gobo-eiffel/gobo/releases/latest)
-  the package `gobo-windows-{x86_64,arm64}-*.7z` (choose
-  `x86_64` or `arm64` depending on your architecture).
-* Copy the files to a directory of your choice on your disk,
-  and (optional) set the environment variable `%GOBO%` to
-  that directory, known as the distribution directory.
-* Put the directory `%GOBO%\bin` in your `PATH`.
+## Libraries Using simple_gobo
 
-### On Linux
+| Library | Components Used |
+|---------|-----------------|
+| simple_eiffel_parser | kernel, structure, utility, time, string, lexical, parse, regexp, tools |
+| simple_regex | kernel, regexp, string, structure, utility |
+| simple_json | kernel, structure |
+| simple_xml | kernel, structure, string |
+| simple_decimal | math |
+| simple_validation | regexp |
 
-* [Download](https://github.com/gobo-eiffel/gobo/releases/latest)
-  the package `gobo-linux-{x86_64,arm64}-*.tar.xz` (choose
-  `x86_64` or `arm64` depending on your architecture).
-* Copy the files to a directory of your choice on your disk,
-  and (optional) set the environment variable `$GOBO` to
-  that directory, known as the distribution directory.
-* Put the directory `$GOBO/bin` in your `PATH`.
+## Upstream Relationship
 
-### On MacOS
+This is a mirror of [gobo-eiffel/gobo](https://github.com/gobo-project/gobo). To update:
 
-* [Download](https://github.com/gobo-eiffel/gobo/releases/latest)
-  the package `gobo-macos-{x86_64,arm64}-*.tar.xz` (choose
-  `x86_64` or `arm64` depending on your architecture).
-* Copy the files to a directory of your choice on your disk,
-  and (optional) set the environment variable `$GOBO` to
-  that directory, known as the distribution directory.
-* Put the directory `$GOBO/bin` in your `PATH`.
+```bash
+cd /path/to/simple_gobo
+git pull origin master
+```
 
-### On other platforms
+## License
 
-* [Download](https://github.com/gobo-eiffel/gobo/releases/latest)
-  the package `gobo-*.tar.gz` (Source code), or check-out the
-  files from the [Git repository](https://github.com/gobo-eiffel/gobo).
-* Copy the files to a directory of your choice on your disk and
-  (optional) set the environment variable `$GOBO` to that directory,
-  known as the distribution directory.
-* Put the directory `$GOBO/bin` in your `PATH`.
-* (optional) Download the [Zig toochain](https://ziglang.org/download/),
-  copy the files to the directory `$GOBO/tool/gec/backend/c/zig` (the `zig`
-  executable should be at the root of this directory), and run the command:
-  ```sh
-    $GOBO/.cicd/patch_zig.ps1 $GOBO/tool/gec/backend/c/zig
-  ``` 
-* To build the tools (e.g. `gec`, `geyacc`, ...), execute the script:
-  ```sh
-    $GOBO/bin/install.sh <c_compiler>
-  ```
-	where `<c_compiler>` is `zig` (if installed above) or a C compiler
-  installed on your computer (for example use `gcc` for GNU C compiler).
+MIT License - See [License.md](License.md) for details.
 
-## Feedback
+---
 
-A list of the known defects along with eventual bug fixes or
-workarounds is available in the 
-[issue tracker](https://github.com/gobo-eiffel/gobo/issues)
-on GitHub (an older
-[bug tracker](https://sourceforge.net/tracker/?atid=381937&amp;group_id=24591&amp;func=browse)
-is available on SourceForge). If you find a bug which does not
-appear in this list yet, please
-[report it](https://github.com/gobo-eiffel/gobo/issues).
-We will try to provide a bug fix as soon as possible
-(usually within one or two days).
-
-There is a
-[mailing list](http://lists.sourceforge.net/lists/listinfo/gobo-eiffel-develop)
-(hosted at SourceForge) for discussions about the features under
-development in the
-[Git repository](https://github.com/gobo-eiffel/gobo)
-on GitHub. You can subscribe and take part to the discussions or ask
-your questions there.
-
-A [nightly build](https://github.com/gobo-eiffel/gobo/releases/tag/nightly)
-with bug fixes and features under development is available on GitHub, next to the other
-[releases](https://github.com/gobo-eiffel/gobo/releases).
-The official releases are also available on
-[SourceForge](https://sourceforge.net/projects/gobo-eiffel/files/gobo-eiffel/) for those of you who prefer to use this mirror.
-
-Although the license allows you to do pretty much whatever you want
-with this software, we would be grateful to get your feedback,
-bug reports and/or bug fixes, improvements, etc. so that others
-could benefit from your work and ideas as well.
-We would also be interested in hearing about your projects and
-how easy (or difficult) it was to adapt this software for your
-specific needs. Thank you in advance.
-
-You are also welcome to take part in the development of the
-*Gobo Eiffel Project*. Some
-[developer guidelines](./library/common/doc/guidelines/index.html)
-are available to help you make the first steps.
-
-## Authors
-
-Copyright (c) 1997-2025, Eric Bezault and others<br>
-mailto:[ericb@gobosoft.com](mailto:ericb@gobosoft.com)<br>
-https:[//www.gobosoft.com](https://www.gobosoft.com)
+For detailed integration instructions, see [SIMPLE_GOBO_README.md](SIMPLE_GOBO_README.md).
