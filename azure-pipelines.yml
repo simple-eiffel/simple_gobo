@@ -1,0 +1,158 @@
+# For available vmImages, see https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops&tabs=yaml
+
+variables:
+  GOBO_CLI_THREAD: 0
+
+stages:
+
+#
+# Build Gobo tools.
+#
+
+  - template: .azure/build.yml
+    parameters:
+      os: linux_ubuntu_24_04
+      c_compiler: zig
+      vm_image: ubuntu-24.04
+
+  - template: .azure/build.yml
+    parameters:
+      os: linux_ubuntu_24_04
+      c_compiler: gcc
+      vm_image: ubuntu-24.04
+
+  - template: .azure/build.yml
+    parameters:
+      os: linux_ubuntu_22_04
+      c_compiler: zig
+      vm_image: ubuntu-22.04
+
+  - template: .azure/build.yml
+    parameters:
+      os: linux_ubuntu_22_04
+      c_compiler: gcc
+      vm_image: ubuntu-22.04
+
+  - template: .azure/build.yml
+    parameters:
+      os: macos_15
+      c_compiler: zig
+      vm_image: macos-15
+
+  - template: .azure/build.yml
+    parameters:
+      os: macos_15
+      c_compiler: clang
+      vm_image: macos-15
+
+  - template: .azure/build.yml
+    parameters:
+      os: macos_14
+      c_compiler: zig
+      vm_image: macos-14
+
+  - template: .azure/build.yml
+    parameters:
+      os: macos_14
+      c_compiler: clang
+      vm_image: macos-14
+
+  - template: .azure/build.yml
+    parameters:
+      os: windows_2025
+      c_compiler: zig
+      vm_image: windows-2025
+
+  - template: .azure/build.yml
+    parameters:
+      os: windows_2025
+      c_compiler: msc
+      vm_image: windows-2025
+
+  - template: .azure/build.yml
+    parameters:
+      os: windows_2022
+      c_compiler: zig
+      vm_image: windows-2022
+
+  - template: .azure/build.yml
+    parameters:
+      os: windows_2022
+      c_compiler: msc
+      vm_image: windows-2022
+
+#
+# Running tests.
+#
+
+  - template: .azure/test.yml
+    parameters:
+      os: linux_ubuntu_24_04
+      c_compiler: zig
+      vm_image: ubuntu-24.04
+
+  - template: .azure/test.yml
+    parameters:
+      os: linux_ubuntu_24_04
+      c_compiler: gcc
+      vm_image: ubuntu-24.04
+
+  - template: .azure/test.yml
+    parameters:
+      os: linux_ubuntu_22_04
+      c_compiler: zig
+      vm_image: ubuntu-22.04
+
+  - template: .azure/test.yml
+    parameters:
+      os: linux_ubuntu_22_04
+      c_compiler: gcc
+      vm_image: ubuntu-22.04
+
+  - template: .azure/test.yml
+    parameters:
+      os: macos_15
+      c_compiler: zig
+      vm_image: macos-15
+
+  - template: .azure/test.yml
+    parameters:
+      os: macos_15
+      c_compiler: clang
+      vm_image: macos-15
+
+  - template: .azure/test.yml
+    parameters:
+      os: macos_14
+      c_compiler: zig
+      vm_image: macos-14
+
+  - template: .azure/test.yml
+    parameters:
+      os: macos_14
+      c_compiler: clang
+      vm_image: macos-14
+
+  - template: .azure/test.yml
+    parameters:
+      os: windows_2025
+      c_compiler: zig
+      vm_image: windows-2025
+
+  - template: .azure/test.yml
+    parameters:
+      os: windows_2025
+      c_compiler: msc
+      vm_image: windows-2025
+
+  - template: .azure/test.yml
+    parameters:
+      os: windows_2022
+      c_compiler: zig
+      vm_image: windows-2022
+
+  - template: .azure/test.yml
+    parameters:
+      os: windows_2022
+      c_compiler: msc
+      vm_image: windows-2022

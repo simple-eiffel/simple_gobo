@@ -1,0 +1,15 @@
+﻿<?xml version="1.0"?>
+
+<project name="tool" default="help">
+
+	<description>
+		description: "Eiffel Ant file for Gobo Eiffel tools"
+		copyright: "Copyright (c) 2001-2016, Eric Bezault and others"
+		license: "MIT License"
+	</description>
+
+	<inherit>
+		<parent location="${GOBO}/library/common/config/tools.eant"/>
+	</inherit>
+
+</project>

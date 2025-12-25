@@ -1,0 +1,189 @@
+# For available runners, see https://docs.github.com/en/enterprise-cloud@latest/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+
+name: "GitHub Actions"
+
+on:
+  push:
+    branches:
+      - '*'
+      - '*/**'
+    tags-ignore:
+      - '*'
+      - '*/**'
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GOBO_CLI_GC: no
+  GOBO_CLI_THREAD: 0
+  GOBO_DEFAULT_SETTING: exception_trace=true
+
+jobs:
+
+#
+# Build Gobo tools.
+#
+
+  linux_build:
+    if: ${{ github.repository == 'ebezault/gobo' || github.repository == 'gobo-eiffel/gobo' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, gcc]
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_ge.ps1" github ${{ matrix.c_compiler }}
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_bin_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: bin
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_c_config_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: tool/gec/backend/c/config/default.cfg
+          retention-days: 1
+
+  macos_build:
+    if: ${{ github.repository == 'ebezault/gobo' || github.repository == 'gobo-eiffel/gobo' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, clang]
+        os: [macos-26, macos-15, macos-15-intel, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_ge.ps1" github ${{ matrix.c_compiler }}
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_bin_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: bin
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_c_config_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: tool/gec/backend/c/config/default.cfg
+          retention-days: 1
+
+  windows_build:
+    if: ${{ github.repository == 'ebezault/gobo' || github.repository == 'gobo-eiffel/gobo' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, msc]
+        os: [windows-2025, windows-2022, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_ge.ps1" github ${{ matrix.c_compiler }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_bin_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: bin
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_c_config_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: tool/gec/backend/c/config/default.cfg
+          retention-days: 1
+
+#
+# Run tests.
+#
+  
+  linux_test:
+    needs: linux_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, gcc]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_bin_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: bin
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_c_config_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: tool/gec/backend/c/config
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_ge.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+        shell: pwsh
+
+  macos_test:
+    needs: macos_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, clang]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        os: [macos-26, macos-15, macos-15-intel, macos-14]
+        exclude:
+          - os: macos-14
+            eiffel_compiler: ise
+          - os: macos-14
+            eiffel_compiler: debug_ise
+          - os: macos-15
+            eiffel_compiler: ise
+          - os: macos-15
+            eiffel_compiler: debug_ise
+          - os: macos-26
+            eiffel_compiler: ise
+          - os: macos-26
+            eiffel_compiler: debug_ise
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_bin_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: bin
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_c_config_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: tool/gec/backend/c/config
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_ge.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+        shell: pwsh
+
+  windows_test:
+    needs: windows_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, msc]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        os: [windows-2025, windows-2022, windows-11-arm]
+        exclude:
+          - os: windows-11-arm
+            eiffel_compiler: ise
+          - os: windows-11-arm
+            eiffel_compiler: debug_ise
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_bin_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: bin
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_c_config_${{ matrix.os }}_${{ matrix.c_compiler }}
+          path: tool/gec/backend/c/config
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_ge.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}

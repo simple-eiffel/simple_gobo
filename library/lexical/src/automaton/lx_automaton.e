@@ -1,0 +1,26 @@
+﻿note
+
+	description:
+
+		"General finite-state automata"
+
+	library: "Gobo Eiffel Lexical Library"
+	copyright: "Copyright (c) 1999, Eric Bezault and others"
+	license: "MIT License"
+
+deferred class LX_AUTOMATON
+
+inherit
+
+	KL_CLONABLE
+
+feature -- Access
+
+	start_state: LX_STATE
+			-- Automaton's start state
+		deferred
+		ensure
+			start_state_not_void: Result /= Void
+		end
+
+end

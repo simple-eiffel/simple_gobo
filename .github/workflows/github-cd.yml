@@ -1,0 +1,283 @@
+# For available runners, see https://docs.github.com/en/enterprise-cloud@latest/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+
+name: "Nightly Build"
+
+on:
+  schedule:
+    - cron: '22 1 * * *'
+  workflow_dispatch:
+
+env:
+  GOBO_DEFAULT_GC: no
+  GOBO_CLI_THREAD: 0
+
+jobs:
+
+#
+# Build Gobo delivery.
+#
+
+  linux_x86_64_build:
+    if: ${{ github.repository == 'gobo-eiffel/gobo' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_delivery.ps1" github gcc
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_delivery_linux_x86_64
+          path: gobo-*.xz
+          retention-days: 1
+
+  linux_arm64_build:
+    if: ${{ github.repository == 'gobo-eiffel/gobo' }}
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_delivery.ps1" github gcc
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_delivery_linux_arm64
+          path: gobo-*.xz
+          retention-days: 1
+
+  macos_x86_64_build:
+    if: ${{ github.repository == 'gobo-eiffel/gobo' }}
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_delivery.ps1" github zig
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_delivery_macos_x86_64
+          path: gobo-*.xz
+          retention-days: 1
+
+  macos_arm64_build:
+    if: ${{ github.repository == 'gobo-eiffel/gobo' }}
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_delivery.ps1" github zig
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_delivery_macos_arm64
+          path: gobo-*.xz
+          retention-days: 1
+
+  windows_x86_64_build:
+    if: ${{ github.repository == 'gobo-eiffel/gobo' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_delivery.ps1" github msc
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_delivery_windows_x86_64
+          path: gobo-*.7z
+          retention-days: 1
+
+  windows_arm64_build:
+    if: ${{ github.repository == 'gobo-eiffel/gobo' }}
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: . "$env:GITHUB_WORKSPACE/.cicd/build_delivery.ps1" github msc
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gobo_delivery_windows_arm64
+          path: gobo-*.7z
+          retention-days: 1
+
+#
+# Run tests.
+#
+  
+  linux_x86_64_test:
+    runs-on: ubuntu-latest
+    needs: linux_x86_64_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, gcc]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        exclude:
+          - c_compiler: gcc
+            eiffel_compiler: ise
+          - c_compiler: gcc
+            eiffel_compiler: debug_ise
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_linux_x86_64
+          path: .
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_delivery.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+        shell: pwsh
+
+  linux_arm64_test:
+    runs-on: ubuntu-24.04-arm
+    needs: linux_arm64_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, gcc]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        exclude:
+          - c_compiler: gcc
+            eiffel_compiler: ise
+          - c_compiler: gcc
+            eiffel_compiler: debug_ise
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_linux_arm64
+          path: .
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_delivery.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+        shell: pwsh
+
+  macos_x86_64_test:
+    runs-on: macos-15-intel
+    needs: macos_x86_64_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, clang]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        exclude:
+          - c_compiler: clang
+            eiffel_compiler: ise
+          - c_compiler: clang
+            eiffel_compiler: debug_ise
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_macos_x86_64
+          path: .
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_delivery.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+        shell: pwsh
+
+  macos_arm64_test:
+    runs-on: macos-14
+    needs: macos_arm64_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, clang]
+        eiffel_compiler: [ge, debug_ge]
+        system_under_test: [library, tool]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_macos_arm64
+          path: .
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_delivery.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+        shell: pwsh
+
+  windows_x86_64_test:
+    runs-on: windows-latest
+    needs: windows_x86_64_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, msc]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        exclude:
+          - c_compiler: msc
+            eiffel_compiler: ise
+          - c_compiler: msc
+            eiffel_compiler: debug_ise
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_windows_x86_64
+          path: .
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_delivery.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+
+  windows_arm64_test:
+    runs-on: windows-11-arm
+    needs: windows_arm64_build
+    strategy:
+      fail-fast: false
+      matrix:
+        c_compiler: [zig, msc]
+        eiffel_compiler: [ge, debug_ge, ise, debug_ise]
+        system_under_test: [library, tool]
+        exclude:
+          - c_compiler: msc
+            eiffel_compiler: ise
+          - c_compiler: msc
+            eiffel_compiler: debug_ise
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_windows_arm64
+          path: .
+      - name: test
+        run: . "$env:GITHUB_WORKSPACE/.cicd/test_delivery.ps1" github ${{ matrix.c_compiler }} ${{ matrix.eiffel_compiler }} ${{ matrix.system_under_test }}
+
+#
+# Publish delivery.
+#
+
+  all_publish:
+    runs-on: ubuntu-latest
+    needs: [linux_x86_64_test, linux_arm64_test, macos_x86_64_test, macos_arm64_test, windows_x86_64_test, windows_arm64_test]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_linux_x86_64
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_linux_arm64
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_macos_x86_64
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_macos_arm64
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_windows_x86_64
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: gobo_delivery_windows_arm64
+          path: .
+      - name: publish
+        uses: pyTooling/Actions/releaser/composite@v1.0.5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: gobo-*
+          tag: nightly
+          rm: true

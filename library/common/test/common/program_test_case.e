@@ -1,0 +1,232 @@
+﻿note
+
+	description:
+
+		"Program test cases"
+
+	copyright: "Copyright (c) 2002-2024, Eric Bezault and others"
+	license: "MIT License"
+
+deferred class PROGRAM_TEST_CASE
+
+inherit
+
+	TS_TEST_CASE
+		redefine
+			tear_down, set_up
+		end
+
+	KL_SHARED_FILE_SYSTEM
+		export {NONE} all end
+
+	KL_SHARED_EXECUTION_ENVIRONMENT
+		export {NONE} all end
+
+	KL_SHARED_EIFFEL_COMPILER
+		export {NONE} all end
+
+feature -- Access
+
+	program_name: STRING
+			-- Program name
+		deferred
+		ensure
+			program_name_not_void: Result /= Void
+			program_name_not_empty: Result.count > 0
+		end
+
+feature -- Test
+
+	compile_program
+			-- Compile program.
+		local
+			a_debug: STRING
+			a_geant_filename: STRING
+			l_thread_option: STRING
+			l_geant_pathname: STRING
+		do
+				-- Compile program.
+			if variables.has ("debug") then
+				a_debug := "debug_"
+			else
+				a_debug := ""
+			end
+			if use_thread_count then
+				l_thread_option := " --thread=" + thread_count.out
+			else
+				l_thread_option := ""
+			end
+			a_geant_filename := geant_filename
+			l_geant_pathname := {UT_GOBO_VARIABLES}.executable_pathname ("geant")
+			assert_execute_with_command_output (l_geant_pathname + " -b " + a_geant_filename + l_thread_option + " compile_" + a_debug + eiffel_compiler.vendor + output1_log, output1_log_filename, error1_log_filename)
+				-- Check compilation.
+			assert ("program_exists", file_system.file_exists (program_exe))
+		end
+
+feature -- Execution
+
+	set_up
+			-- Setup for a test.
+		local
+			a_testdir: STRING
+		do
+			a_testdir := testdir
+			-- assert (a_testdir + "_not_exists", not file_system.directory_exists (a_testdir))
+			old_cwd := file_system.cwd
+			file_system.create_directory (a_testdir)
+			assert (a_testdir + "_exists", file_system.directory_exists (a_testdir))
+			file_system.cd (a_testdir)
+		end
+
+	tear_down
+			-- Tear down after a test.
+		do
+			if attached old_cwd as l_old_cwd then
+				file_system.cd (l_old_cwd)
+				-- file_system.recursive_delete_directory (testdir)
+				old_cwd := Void
+			end
+		end
+
+	old_cwd: detachable STRING
+			-- Initial current working directory
+
+feature -- Multi-threading
+
+	use_thread_count: BOOLEAN
+			-- Should the number of threads to be used when running thread-capable
+			-- compilers be overridden with `thread_count'?
+
+	thread_count: INTEGER
+			-- Number of threads to be used when running thread-capable compilers.
+			-- Negative numbers -N mean "number of CPUs - N".
+
+	set_thread_count (a_thread_count: INTEGER)
+			-- Set `thread_count' to `a_thread_count'.
+		do
+			thread_count := a_thread_count
+			use_thread_count := True
+		ensure
+			use_thread_count_set: use_thread_count
+			thread_count_set: thread_count = a_thread_count
+		end
+
+feature {NONE} -- Implementation
+
+	program_dirname: STRING
+			-- Name of program source directory
+		deferred
+		ensure
+			program_dirname_not_void: Result /= Void
+			program_dirname_not_empty: Result.count > 0
+		end
+
+	program_exe: STRING
+			-- Name of program executable filename
+		do
+			Result := file_system.pathname (file_system.relative_current_directory, program_name + file_system.exe_extension)
+		ensure
+			program_exe_not_void: Result /= Void
+			program_exe_not_empty: Result.count > 0
+		end
+
+	geant_filename: STRING
+			-- Name of geant build file used for compilation
+		do
+			Result := file_system.pathname (program_dirname, "build.eant")
+		ensure
+			geant_filename_not_void: Result /= Void
+			geant_filename_not_empty: Result.count > 0
+		end
+
+	testdir: STRING
+			-- Name of temporary directory where to run the test
+		do
+			Result := "T" + program_name
+		ensure
+			testdir_not_void: Result /= Void
+			testdir_not_empty: Result.count > 0
+		end
+
+	output1_log_filename: STRING = "output1.log"
+			-- Output log filename
+
+	error1_log_filename: STRING = "error1.log"
+			-- Error log filename
+
+	output1_log: STRING
+			-- Where and how to redirect output logs
+		once
+			Result := " > " + output1_log_filename + " 2> " + error1_log_filename
+		ensure
+			output1_log_not_void: Result /= Void
+			output1_log_not_empty: Result.count > 0
+		end
+
+	output2_log_filename: STRING = "output2.log"
+			-- Output log filename
+
+	error2_log_filename: STRING = "error2.log"
+			-- Error log filename
+
+	output2_log: STRING
+			-- Where and how to redirect output logs
+		once
+			Result := " > " + output2_log_filename + " 2> " + error2_log_filename
+		ensure
+			output2_log_not_void: Result /= Void
+			output2_log_not_empty: Result.count > 0
+		end
+
+	output3_log_filename: STRING = "output3.log"
+			-- Output log filename
+
+	error3_log_filename: STRING = "error23.log"
+			-- Error log filename
+
+	output3_log: STRING
+			-- Where and how to redirect output logs
+		once
+			Result := " > " + output3_log_filename + " 2> " + error3_log_filename
+		ensure
+			output3_log_not_void: Result /= Void
+			output3_log_not_empty: Result.count > 0
+		end
+
+	freeise_log_filename: STRING
+			-- Name of file containing message displayed
+			-- by programs compiled with the free version
+			-- of ISE Eiffel under Linux/Unix
+		once
+			Result := file_system.nested_pathname ("${GOBO}", <<"library", "common", "test", "common", "data", "freeise.txt">>)
+			Result := Execution_environment.interpreted_string (Result)
+		ensure
+			freeise_log_filename_not_void: Result /= Void
+			freeise_log_filename_not_empty: Result.count > 0
+		end
+
+	geeraise_log_filename: STRING
+			-- Name of file containing message displayed
+			-- by programs compiled with Gobo Eiffel Compiler
+			-- when raising an exception
+		once
+			Result := file_system.nested_pathname ("${GOBO}", <<"library", "common", "test", "common", "data", "geeraise.txt">>)
+			Result := Execution_environment.interpreted_string (Result)
+		ensure
+			geeraise_log_filename_not_void: Result /= Void
+			geeraise_log_filename_not_empty: Result.count > 0
+		end
+
+	input_text_filename: STRING = "input.txt"
+			-- Input filename
+
+	input_text: STRING
+			-- From where and how to redirect input logs
+		once
+			Result := " < " + input_text_filename
+		ensure
+			input_text_not_void: Result /= Void
+			input_text_not_empty: Result.count > 0
+		end
+
+end
