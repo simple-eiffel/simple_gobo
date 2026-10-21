@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>simple_gobo - GitHub Gobo 2024 for SCOOP Parsing</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/simple-eiffel/claude_eiffel_op_docs/main/artwork/LOGO.png" alt="simple_* logo" class="logo">
+        </div>
+        <h1>simple_gobo</h1>
+        <p class="tagline">GitHub Gobo 2024 for SCOOP Inline Separate Parsing</p>
+        <div class="badges">
+            <span class="badge badge-version">2024</span>
+            <span class="badge badge-license">MIT</span>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#why">Why This Exists</a></li>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#verification">Verification</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_gobo">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                <strong>simple_gobo</strong> provides GitHub Gobo (2024) integration for the Simple Eiffel ecosystem,
+                enabling SCOOP inline separate parsing that is missing from EiffelStudio's bundled Gobo (2021).
+            </p>
+            <p>Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.</p>
+
+            <div class="code-block">
+                <pre><span class="comment">-- SCOOP inline separate syntax (now parseable!)</span>
+<span class="keyword">separate</span> a_worker <span class="keyword">as</span> l_worker <span class="keyword">do</span>
+    l_worker.do_work
+<span class="keyword">end</span>
+
+<span class="comment">-- Multiple region variant</span>
+<span class="keyword">separate</span> a_w1 <span class="keyword">as</span> l_w1, a_w2 <span class="keyword">as</span> l_w2 <span class="keyword">do</span>
+    l_w1.sync_with (l_w2)
+<span class="keyword">end</span></pre>
+            </div>
+        </section>
+
+        <section id="why">
+            <h2>Why This Exists</h2>
+            <p>
+                EiffelStudio 25.02 bundles Gobo from approximately 2021. This version lacks support for
+                the SCOOP inline separate syntax introduced in ECMA-367 3rd edition.
+            </p>
+
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>ISE Bundled (2021)</th>
+                        <th>GitHub Gobo (2024)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>SCOOP inline <code>separate...as...do</code></td>
+                        <td>Not supported</td>
+                        <td>Full support</td>
+                    </tr>
+                    <tr>
+                        <td><code>ET_INLINE_SEPARATE_*</code> AST classes</td>
+                        <td>Missing</td>
+                        <td>9 classes</td>
+                    </tr>
+                    <tr>
+                        <td>Grammar rules for inline separate</td>
+                        <td>None</td>
+                        <td>12+ rules</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>The Impact</h3>
+            <p>
+                The <code>simple_eiffel_parser</code> library uses Gobo's Eiffel parser. Without modern Gobo,
+                it couldn't parse SCOOP inline separate syntax, leaving gaps in <code>simple_kb</code> ingestion.
+            </p>
+            <p>
+                With GitHub Gobo 2024, parse errors dropped from <strong>265 to 138</strong>, and the KB
+                now indexes <strong>87,780 features</strong> across <strong>4,613 classes</strong>.
+            </p>
+        </section>
+
+        <section id="installation">
+            <h2>Installation</h2>
+
+            <h3>1. Set Environment Variables</h3>
+
+            <h4>Windows (PowerShell as Admin)</h4>
+            <div class="code-block">
+                <pre>[Environment]::SetEnvironmentVariable("SIMPLE_GOBO", "D:\prod\simple_gobo", "User")
+[Environment]::SetEnvironmentVariable("GOBO_LIBRARY", "D:\prod\simple_gobo\library", "User")
+[Environment]::SetEnvironmentVariable("GOBO_EIFFEL", "ise", "User")</pre>
+            </div>
+
+            <h4>Linux/macOS</h4>
+            <div class="code-block">
+                <pre>export SIMPLE_GOBO=/path/to/simple_gobo
+export GOBO_LIBRARY=$SIMPLE_GOBO/library
+export GOBO_EIFFEL=ise</pre>
+            </div>
+
+            <h3>2. Update ECF Files</h3>
+            <p>Libraries that use Gobo need ECF updates:</p>
+            <div class="code-block">
+                <pre><span class="comment">&lt;!-- Before (ISE bundled Gobo 2021) --&gt;</span>
+&lt;library name="gobo_regexp"
+         location="$ISE_LIBRARY/contrib/library/gobo/library/regexp/library.ecf"/&gt;
+
+<span class="comment">&lt;!-- After (GitHub Gobo 2024) --&gt;</span>
+&lt;library name="gobo_regexp"
+         location="$GOBO_LIBRARY/regexp/library.ecf"/&gt;</pre>
+            </div>
+        </section>
+
+        <section id="libraries">
+            <h2>Libraries Updated</h2>
+            <p>The following simple_* libraries were migrated to use <code>$GOBO_LIBRARY</code>:</p>
+
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Library</th>
+                        <th>Gobo Components Used</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>simple_eiffel_parser</td>
+                        <td>kernel, structure, utility, time, string, lexical, parse, regexp, tools</td>
+                    </tr>
+                    <tr>
+                        <td>simple_regex</td>
+                        <td>kernel, regexp, string, structure, utility</td>
+                    </tr>
+                    <tr>
+                        <td>simple_json</td>
+                        <td>kernel, structure</td>
+                    </tr>
+                    <tr>
+                        <td>simple_xml</td>
+                        <td>kernel, structure, string</td>
+                    </tr>
+                    <tr>
+                        <td>simple_decimal</td>
+                        <td>math</td>
+                    </tr>
+                    <tr>
+                        <td>simple_validation</td>
+                        <td>regexp</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="verification">
+            <h2>Verification</h2>
+            <p>SCOOP parsing tests were added to <code>simple_eiffel_parser</code>:</p>
+
+            <div class="code-block">
+                <pre><span class="feature">test_scoop_inline_separate</span>
+    <span class="comment">-- Test: `separate &lt;expr&gt; as &lt;var&gt; do ... end`</span>
+<span class="keyword">local</span>
+    l_parser: <span class="type">SIMPLE_EIFFEL_PARSER</span>
+    l_source: <span class="type">STRING</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> l_parser.make
+    l_source := <span class="string">"[
+class SCOOP_TEST
+feature
+    process (a_worker: separate WORKER)
+        do
+            separate a_worker as l_worker do
+                l_worker.do_work
+            end
+        end
+end
+]"</span>
+    assert_false (<span class="string">"parsed"</span>, l_parser.parse_string (l_source).has_errors)
+<span class="keyword">end</span></pre>
+            </div>
+
+            <p>Both tests pass, confirming GitHub Gobo correctly parses SCOOP inline separate syntax.</p>
+        </section>
+
+        <section id="structure">
+            <h2>Key Gobo Components</h2>
+            <div class="code-block">
+                <pre>simple_gobo/library/
+├── kernel/       <span class="comment">-- Core utilities (KL_*)</span>
+├── structure/    <span class="comment">-- Data structures (DS_*)</span>
+├── string/       <span class="comment">-- String utilities (ST_*)</span>
+├── lexical/      <span class="comment">-- Lexer generation</span>
+├── parse/        <span class="comment">-- Parser generation</span>
+├── regexp/       <span class="comment">-- Regular expressions (RX_*)</span>
+├── tools/        <span class="comment">-- Eiffel parser (ET_*) &lt;-- SCOOP support here</span>
+├── math/         <span class="comment">-- Decimal arithmetic</span>
+├── time/         <span class="comment">-- Date/time utilities</span>
+├── utility/      <span class="comment">-- General utilities (UT_*)</span>
+└── xml/          <span class="comment">-- XML processing</span></pre>
+            </div>
+
+            <p>The critical SCOOP support is in <code>library/tools/src/eiffel/</code>:</p>
+            <ul>
+                <li><code>ast/instruction/et_inline_separate_instruction.e</code></li>
+                <li><code>ast/instruction/et_inline_separate_argument.e</code></li>
+                <li><code>ast/instruction/et_inline_separate_argument_list.e</code></li>
+                <li><code>parser/et_eiffel_parser.y</code> (grammar with <code>Inline_separate_instruction</code> rules)</li>
+            </ul>
+        </section>
+
+        <section id="upstream">
+            <h2>Relationship to Upstream</h2>
+            <p>
+                This is a <strong>direct clone</strong> of
+                <a href="https://github.com/gobo-project/gobo">gobo-project/gobo</a>.
+                We do not fork or modify it. When Gobo updates, we can pull the latest changes:
+            </p>
+            <div class="code-block">
+                <pre>cd /d/prod/simple_gobo
+git pull origin master</pre>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 simple_* ecosystem. MIT License.</p>
+        <p>
+            <a href="https://github.com/simple-eiffel/simple_gobo">GitHub</a> |
+            <a href="https://simple-eiffel.github.io">Documentation</a>
+        </p>
+    </footer>
+</body>
+</html>
