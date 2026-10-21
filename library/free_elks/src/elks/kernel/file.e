@@ -216,7 +216,7 @@ feature -- Access
 		obsolete
 			"Use `path.name' to ensure that Unicode filenames are not truncated. [2017-05-31]"
 		do
-			Result := internal_name.as_string_8
+			Result := internal_name.to_string_8
 		ensure then
 			name_not_empty: not Result.is_empty
 		end

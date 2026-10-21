@@ -698,7 +698,7 @@ feature {NONE} -- private access arrayed_list
 
 	al_lin_rep: LINEAR [like Current]
 		do
-			Result := arrayed_list.linear_representation
+			Result := arrayed_list.entries
 		end
 
 	al_has (v: like Current): BOOLEAN

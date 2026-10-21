@@ -163,7 +163,7 @@ feature -- Access
 			"Use `file_entry' to ensure that filenames are not truncated. [2017-05-31]"
 		do
 			if attached internal_file_name as l_name then
-				Result := l_name.as_string_8
+				Result := l_name.to_string_8
 			end
 		end
 

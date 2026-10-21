@@ -27,7 +27,7 @@ feature -- Access
 			index_large_enough: i >= 0
 			index_small_enough: i <= argument_count
 		do
-			Result := internal_arguments.argument (i).as_string_8
+			Result := internal_arguments.argument (i).to_string_8
 		ensure
 			instance_free: class
 			argument_not_void: Result /= Void

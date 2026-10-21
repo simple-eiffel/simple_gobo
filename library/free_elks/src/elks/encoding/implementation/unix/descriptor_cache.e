@@ -75,7 +75,7 @@ feature -- Clean up
 	clean_up
 			-- Call `iconv_close' on all open descriptors.
 		do
-			cache.linear_representation.do_all (agent c_iconv_close)
+			cache.entries.do_all (agent c_iconv_close)
 			converted_pair.wipe_out
 		end
 

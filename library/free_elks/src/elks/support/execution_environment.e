@@ -125,7 +125,7 @@ feature -- Access
 			if attached item (s) as l_val then
 					-- If the environment variable contains non-ASCII characters they
 					-- will be missing.
-				Result := l_val.as_string_8
+				Result := l_val.to_string_8
 			end
 		ensure
 			instance_free: class
@@ -336,7 +336,7 @@ feature -- Access
 			loop
 				ns.set_shared_from_pointer (l_ptr)
 				if attached separated_variables (ns.string) as l_curr_var then
-					Result.force (l_curr_var.value.as_string_8, l_curr_var.key.as_string_8)
+					Result.force (l_curr_var.value.to_string_8, l_curr_var.key.to_string_8)
 				end
 				i := i + 1
 				l_ptr := i_th_environ (i)

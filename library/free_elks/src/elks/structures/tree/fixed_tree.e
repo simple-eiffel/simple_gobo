@@ -613,7 +613,7 @@ feature {NONE} -- private access fixed_list
 
 	fl_lin_rep: LINEAR [detachable like Current]
 		do
-			Result := fixed_list.linear_representation
+			Result := fixed_list.entries
 		end
 
 	fl_has (v: like Current): BOOLEAN

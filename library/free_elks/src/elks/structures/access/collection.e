@@ -58,7 +58,7 @@ feature -- Element change
 		local
 			lin_rep: LINEAR [G]
 		do
-			lin_rep := other.linear_representation
+			lin_rep := other.entries
 			from
 				lin_rep.start
 			until

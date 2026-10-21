@@ -51,7 +51,7 @@ feature -- Access
 		obsolete
 			"Use `tag' instead. [2017-05-31]"
 		do
-			Result := tag.as_string_8
+			Result := tag.to_string_8
 		end
 
 	tag: IMMUTABLE_STRING_32

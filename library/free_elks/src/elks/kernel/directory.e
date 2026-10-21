@@ -159,7 +159,7 @@ feature -- Access
 		obsolete
 			"Use `path' to ensure you can retrieve all kind of names. [2017-05-31]"
 		do
-			Result := internal_name.as_string_8
+			Result := internal_name.to_string_8
 		ensure then
 			name_not_empty: not Result.is_empty
 		end

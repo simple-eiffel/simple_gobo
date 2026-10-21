@@ -297,7 +297,7 @@ feature -- Element change
 			lin_rep: LINEAR [G]
 			l_cursor: CURSOR
 		do
-			lin_rep := other.linear_representation
+			lin_rep := other.entries
 			from
 				l_cursor := cursor
 				lin_rep.start

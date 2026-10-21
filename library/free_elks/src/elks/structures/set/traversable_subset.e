@@ -105,7 +105,7 @@ feature -- Element change
 			else
 					-- `other' is not a descendant of LINEAR, therefore  we
 					-- must convert its contents into a linear representation.
-				l := other.linear_representation
+				l := other.entries
 			end
 			from
 				l.start

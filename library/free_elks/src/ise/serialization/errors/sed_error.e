@@ -30,7 +30,7 @@ feature -- Access
 		obsolete
 			"Use `message' instead. [2017-05-31]"
 		do
-			Result := message.as_string_8
+			Result := message.to_string_8
 		end
 
 	message: STRING_32;

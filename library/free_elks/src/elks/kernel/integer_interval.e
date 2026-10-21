@@ -302,7 +302,7 @@ feature -- Conversion
 			check
 				terminal: upper_defined and lower_defined
 			end
-			Result := as_array.linear_representation
+			Result := as_array.entries
 		end
 
 feature -- Duplication
