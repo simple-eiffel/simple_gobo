@@ -4,14 +4,14 @@
 
 # simple_gobo
 
-**[Documentation](https://simple-eiffel.github.io/simple_gobo/)** | **[GitHub](https://github.com/simple-eiffel/simple_gobo)** | **[Upstream Gobo](https://github.com/gobo-project/gobo)**
+**[Documentation](https://simple-eiffel.github.io/simple_gobo/)** | **[GitHub](https://github.com/simple-eiffel/simple_gobo)** | **[Upstream Gobo](https://github.com/gobo-eiffel/gobo)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Eiffel](https://img.shields.io/badge/Eiffel-25.02-blue.svg)](https://www.eiffel.org/)
-[![Gobo](https://img.shields.io/badge/Gobo-2024-green.svg)](https://github.com/gobo-project/gobo)
+[![Gobo](https://img.shields.io/badge/Gobo-26.10.18-green.svg)](https://github.com/gobo-eiffel/gobo)
 [![SCOOP](https://img.shields.io/badge/SCOOP-inline%20separate-orange.svg)]()
 
-GitHub Gobo (2024) integration for the Simple Eiffel ecosystem, providing SCOOP inline separate parsing support.
+GitHub Gobo 26.10.18 (October 2026) integration for the Simple Eiffel ecosystem, providing SCOOP inline separate parsing support.
 
 Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
@@ -35,15 +35,15 @@ separate a_w1 as l_w1, a_w2 as l_w2 do
 end
 ```
 
-GitHub Gobo (2024) includes full support for this syntax via:
+GitHub Gobo 26.10.18 (October 2026) includes full support for this syntax via:
 - Grammar rules: `Inline_separate_instruction`, `Inline_separate_argument`
 - AST classes: `ET_INLINE_SEPARATE_INSTRUCTION`, `ET_INLINE_SEPARATE_ARGUMENT`, `ET_INLINE_SEPARATE_ARGUMENT_LIST`, etc.
 
 ## The Problem We Solved
 
-| Component | EiffelStudio 25.02 | GitHub Gobo 2024 |
+| Component | EiffelStudio 25.02 | GitHub Gobo 26.10.18 |
 |-----------|-------------------|------------------|
-| Gobo Version | ~2021 | 2024 (current) |
+| Gobo Version | ~2021 | 26.10.18 (current) |
 | SCOOP inline `separate...as...do` | Not supported | Full support |
 | `ET_INLINE_SEPARATE_*` classes | Missing | Present (9 classes) |
 
@@ -53,7 +53,7 @@ The `simple_eiffel_parser` library uses Gobo's parser. Without modern Gobo, it c
 
 ### 1. Clone from GitHub
 ```bash
-git clone https://github.com/gobo-project/gobo.git /d/prod/simple_gobo
+git clone https://github.com/gobo-eiffel/gobo.git /d/prod/simple_gobo  # now tracks tag gobo-26.10
 ```
 
 ### 2. Set Environment Variables
@@ -80,7 +80,7 @@ Libraries that use Gobo need ECF updates:
 <!-- Before (ISE bundled Gobo 2021) -->
 <library name="gobo_regexp" location="$ISE_LIBRARY/contrib/library/gobo/library/regexp/library.ecf"/>
 
-<!-- After (GitHub Gobo 2024) -->
+<!-- After (GitHub Gobo 26.10.18) -->
 <library name="gobo_regexp" location="$GOBO_LIBRARY/regexp/library.ecf"/>
 ```
 
@@ -153,7 +153,7 @@ The critical SCOOP support is in `library/tools/src/eiffel/`:
 
 ## Relationship to Upstream
 
-This is a **direct clone** of [gobo-project/gobo](https://github.com/gobo-project/gobo). We do not fork or modify it. When Gobo updates, we can pull the latest changes:
+This is a **direct clone** of [gobo-project/gobo](https://github.com/gobo-eiffel/gobo). We do not fork or modify it. When Gobo updates, we can pull the latest changes:
 
 ```bash
 cd /d/prod/simple_gobo

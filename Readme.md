@@ -4,14 +4,14 @@
 
 # simple_gobo
 
-**[Documentation](https://simple-eiffel.github.io/simple_gobo/)** | **[GitHub](https://github.com/simple-eiffel/simple_gobo)** | **[Upstream Gobo](https://github.com/gobo-project/gobo)**
+**[Documentation](https://simple-eiffel.github.io/simple_gobo/)** | **[GitHub](https://github.com/simple-eiffel/simple_gobo)** | **[Upstream Gobo](https://github.com/gobo-eiffel/gobo)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Eiffel](https://img.shields.io/badge/Eiffel-25.02-blue.svg)](https://www.eiffel.org/)
-[![Gobo](https://img.shields.io/badge/Gobo-2024-green.svg)](https://github.com/gobo-project/gobo)
+[![Gobo](https://img.shields.io/badge/Gobo-26.10.18-green.svg)](https://github.com/gobo-eiffel/gobo)
 [![SCOOP](https://img.shields.io/badge/SCOOP-inline%20separate-orange.svg)]()
 
-GitHub Gobo (2024) integration for the Simple Eiffel ecosystem, providing SCOOP inline separate parsing support.
+GitHub Gobo 26.10.18 (October 2026) integration for the Simple Eiffel ecosystem, providing SCOOP inline separate parsing support.
 
 Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
@@ -19,9 +19,13 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 **Production** - Required dependency for SCOOP-capable parsing
 
+### Upgrade history
+
+- **26.10.18 (October 2026):** moved from upstream commit `0e2d9b7` (22 December 2025) to the upstream release tag `gobo-26.10`. Fourteen local edits to `library/free_elks` (an automated obsolete-call sweep from February 2026) were dropped: under `GOBO_EIFFEL=ise` that folder is never compiled, and seven of the edits called a feature (`entries`) that does not exist there. One consumer change goes with this upgrade: `simple_eiffel_parser` must call `has_syntax_error` instead of `syntax_error`, because Gobo's Eiffel parser is now fault-tolerant.
+
 ## Overview
 
-EiffelStudio 25.02 bundles Gobo from 2021, which lacks support for modern SCOOP syntax. GitHub Gobo (2024) includes full support for inline separate blocks:
+EiffelStudio 25.02 bundles Gobo from 2021, which lacks support for modern SCOOP syntax. GitHub Gobo 26.10.18 (October 2026) includes full support for inline separate blocks:
 
 ```eiffel
 -- SCOOP inline separate (ECMA-367 3rd edition)
@@ -40,7 +44,7 @@ end
 - **SCOOP Inline Separate**: Full grammar support for `separate...as...do...end`
 - **ET_INLINE_SEPARATE_* Classes**: 9 AST classes for SCOOP constructs
 - **EiffelStudio Compatible**: Use with `GOBO_EIFFEL=ise`
-- **Latest Gobo**: 2024 version with all language features
+- **Current Gobo**: upstream release 26.10.18 (18 October 2026)
 
 ## Installation
 
@@ -70,7 +74,7 @@ export GOBO_EIFFEL=ise
 
 ## Upstream Relationship
 
-This is a mirror of [gobo-eiffel/gobo](https://github.com/gobo-project/gobo). To update:
+This is a mirror of [gobo-eiffel/gobo](https://github.com/gobo-eiffel/gobo). To update:
 
 ```bash
 cd /path/to/simple_gobo
