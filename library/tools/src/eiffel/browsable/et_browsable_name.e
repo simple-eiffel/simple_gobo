@@ -5,7 +5,7 @@
 		"Names in the AST which can point to browsable information"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 deferred class ET_BROWSABLE_NAME
@@ -29,6 +29,11 @@ feature -- Access
 			name_not_void: Result /= Void
 		end
 
+	type_base_class: detachable ET_CLASS
+			-- Base class of the type of the browsable name, if any
+		deferred
+		end
+
 feature -- Context
 
 	is_completion_disabled: BOOLEAN
@@ -44,7 +49,7 @@ feature -- Context
 	is_only_class_name_expected: BOOLEAN
 			-- In the current context in the Eiffel code,
 			-- is only a class name expected (no type mark,
-			-- no formal paramater)?
+			-- no formal parameter)?
 			-- (For example in client clauses.)
 
 	is_only_query_expected: BOOLEAN
@@ -134,11 +139,10 @@ feature -- Context setting
 		end
 feature -- Basic operations
 
-	build_completion (a_builder: ET_BROWSABLE_COMPLETION_BUILDER; a_system_processor: ET_SYSTEM_PROCESSOR)
+	build_completion (a_builder: ET_BROWSABLE_COMPLETION_BUILDER)
 			-- Build list of completion suggestions.
 		require
 			a_builder_not_void: a_builder /= Void
-			a_system_processor_not_void: a_system_processor /= Void
 		deferred
 		end
 
@@ -224,15 +228,12 @@ feature -- Output
 			valid_utf8: (a_string.same_type ({STRING_8} "") and then old {UC_UTF8_ROUTINES}.valid_utf8 (a_string)) implies {UC_UTF8_ROUTINES}.valid_utf8 (a_string)
 		end
 
-	definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the current browsable name is defined
-		deferred
-		end
+feature -- Processing
 
-	type_definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the type of the current browsable name is defined
+	process (a_processor: ET_BROWSABLE_NAME_PROCESSOR)
+			-- Process current name.
+		require
+			a_processor_not_void: a_processor /= Void
 		deferred
 		end
 

@@ -5,7 +5,7 @@
 		"Browsable qualified call names"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_BROWSABLE_QUALIFIED_CALL_NAME
@@ -27,7 +27,21 @@ feature -- Access
 		do
 			l_seed := name.seed
 			if l_seed /= 0 then
-				Result := target_type.base_class (current_class).seeded_feature (l_seed)
+				Result := target_base_class.seeded_feature (l_seed)
+			end
+		end
+
+	type_base_class: detachable ET_CLASS
+			-- Base class of the type of the browsable name, if any
+		local
+			l_nested_type_context: ET_NESTED_TYPE_CONTEXT
+		do
+			if not attached call_feature as l_feature then
+				-- No type.
+			elseif attached l_feature.type as l_type then
+				create l_nested_type_context.make_with_capacity (current_class, 1)
+				l_nested_type_context.put_last (target_type)
+				Result := l_type.base_class (l_nested_type_context)
 			end
 		end
 
@@ -41,33 +55,12 @@ feature -- Output
 			end
 		end
 
-	definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the current browsable name is defined
-		local
-			l_feature_impl: ET_FEATURE
-		do
-			if attached call_feature as l_feature then
-				l_feature_impl := l_feature.implementation_feature
-				Result := [l_feature_impl.name, l_feature_impl.implementation_class]
-			end
-		end
+feature -- Processing
 
-	type_definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the type of the current browsable name is defined
-		local
-			l_nested_type_context: ET_NESTED_TYPE_CONTEXT
-			l_base_class: ET_CLASS
+	process (a_processor: ET_BROWSABLE_NAME_PROCESSOR)
+			-- Process current name.
 		do
-			if not attached call_feature as l_feature then
-				-- No type definition.
-			elseif attached l_feature.type as l_type then
-				create l_nested_type_context.make_with_capacity (current_class, 1)
-				l_nested_type_context.put_last (target_type)
-				l_base_class := l_type.base_class (l_nested_type_context)
-				Result := [l_base_class.name, l_base_class]
-			end
+			a_processor.process_qualified_call_name (Current)
 		end
 
 end

@@ -4,7 +4,7 @@
 		"C declarations for the Gobo Eiffel runtime."
 
 	system: "Gobo Eiffel Compiler"
-	copyright: "Copyright (c) 2005-2024, Eric Bezault and others"
+	copyright: "Copyright (c) 2005-2026, Eric Bezault and others"
 	license: "MIT License"
 */
 
@@ -302,10 +302,13 @@ typedef volatile struct {
 
 /* SCOOP */
 typedef uint16_t EIF_SCP_PID; /* Processor ID */
+#ifdef GE_USE_SCOOP_REGION_ID
+#define GE_EIF_SCP_PID_MAX (EIF_SCP_PID)65535
 #ifdef GE_USE_SCOOP
-#define RTS_PID(o) (EIF_SCP_PID)(uintptr_t)(((EIF_REFERENCE)(o))->region)
+#define RTS_PID(o) ((EIF_REFERENCE)(o))->region->id
 #else
 #define RTS_PID(o) (EIF_SCP_PID)0
+#endif
 #endif
 
 #ifdef EIF_WINDOWS
@@ -369,16 +372,8 @@ typedef EIF_NATIVE_CHAR* EIF_FILENAME;
 #define GE_IS_64_BITS EIF_TEST(sizeof(void*)==8)
 #endif
 
-/*
- * Workaround for crashes (illegal instruction signal) when calling 
- * `memset` in Azure Devops pipelines under Windows.
- */
-#if defined(GE_WINDOWS) && defined(__clang__)
-extern void* GE_memset(void* str, int c, size_t n);
-#define memset(x, y, z) GE_memset((x), (y), (z))
-#else
 #define GE_memset(x, y, z) memset((x), (y), (z))
-#endif
+#define GE_memcpy(x, y, z) memcpy((x), (y), (z))
 
 /* Posix threads */
 #if !defined(EIF_WINDOWS)
@@ -396,7 +391,11 @@ extern void* GE_memset(void* str, int c, size_t n);
 */
 #define RTI64C(x) GE_int64(x)
 #define RTU64C(x) GE_nat64(x)
-#define EIF_OBJECT EIF_REFERENCE
+#ifdef GE_USE_BOEHM_GC
+#define EIF_OBJECT EIF_REFERENCE*
+#else
+#define EIF_OBJECT void*
+#endif
 #define EIF_OBJ EIF_OBJECT
 #define OVERHEAD sizeof(EIF_ANY)
 /* Function pointer call to make sure all arguments are correctly pushed onto stack. */

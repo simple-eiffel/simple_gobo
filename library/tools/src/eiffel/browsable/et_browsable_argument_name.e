@@ -5,7 +5,7 @@
 		"Browsable names of formal arguments"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_BROWSABLE_ARGUMENT_NAME
@@ -59,6 +59,14 @@ feature -- Access
 			end
 		end
 
+	type_base_class: detachable ET_CLASS
+			-- Base class of the type of the browsable name, if any
+		do
+			if attached formal_argument as l_formal_argument then
+				Result := l_formal_argument.type.base_class (current_class)
+			end
+		end
+
 feature -- Output
 
 	append_description_to_string (a_string: STRING_8)
@@ -69,25 +77,12 @@ feature -- Output
 			end
 		end
 
-	definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the current browsable name is defined
-		do
-			if attached formal_argument as l_formal_argument then
-				Result := [l_formal_argument.name, current_class]
-			end
-		end
+feature -- Processing
 
-	type_definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the type of the current browsable name is defined
-		local
-			l_base_class: ET_CLASS
+	process (a_processor: ET_BROWSABLE_NAME_PROCESSOR)
+			-- Process current name.
 		do
-			if attached formal_argument as l_formal_argument then
-				l_base_class := l_formal_argument.type.base_class (current_class)
-				Result := [l_base_class.name, l_base_class]
-			end
+			a_processor.process_argument_name (Current)
 		end
 
 invariant

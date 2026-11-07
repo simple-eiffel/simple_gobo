@@ -5,7 +5,7 @@
 		"Browsable unqualified names"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 deferred class ET_BROWSABLE_UNQUALIFIED_NAME
@@ -41,7 +41,7 @@ feature -- Access
 
 feature -- Basic operations
 
-	build_completion (a_builder: ET_BROWSABLE_COMPLETION_BUILDER; a_system_processor: ET_SYSTEM_PROCESSOR)
+	build_completion (a_builder: ET_BROWSABLE_COMPLETION_BUILDER)
 			-- Build list of completion suggestions.
 		local
 			i, nb: INTEGER
@@ -104,7 +104,7 @@ feature -- Basic operations
 									a_builder.add_inline_separate_argument (l_inline_separate_arguments.argument (i), Current)
 									i := i + 1
 								end
-							end 
+							end
 							if attached {ET_QUERY} l_closure then
 									-- Warning: not valid in preconditions.
 								a_builder.add_keyword (tokens.result_keyword, Current)
@@ -117,32 +117,34 @@ feature -- Basic operations
 							a_builder.add_keyword (tokens.precursor_keyword, Current)
 						end
 					end
-					if not is_only_procedure_expected and then not is_only_creation_procedure_expected then
-						a_builder.add_keyword (tokens.agent_keyword, Current)
-						a_builder.add_keyword (tokens.attached_keyword, Current)
-						a_builder.add_keyword (tokens.current_keyword, Current)
-						a_builder.add_keyword (tokens.false_keyword, Current)
-						a_builder.add_keyword (tokens.not_keyword, Current)
-						a_builder.add_keyword (tokens.once_keyword, Current)
-						a_builder.add_keyword (tokens.true_keyword, Current)
-						a_builder.add_keyword (tokens.void_keyword, Current)
+					if not attached {ET_KEYWORD} name then
+						if not is_only_procedure_expected and then not is_only_creation_procedure_expected then
+							a_builder.add_keyword (tokens.agent_keyword, Current)
+							a_builder.add_keyword (tokens.attached_keyword, Current)
+							a_builder.add_keyword (tokens.current_keyword, Current)
+							a_builder.add_keyword (tokens.false_keyword, Current)
+							a_builder.add_keyword (tokens.not_keyword, Current)
+							a_builder.add_keyword (tokens.once_keyword, Current)
+							a_builder.add_keyword (tokens.true_keyword, Current)
+							a_builder.add_keyword (tokens.void_keyword, Current)
+						end
+						if not is_only_query_expected then
+							a_builder.add_keyword (tokens.check_keyword, Current)
+							a_builder.add_keyword (tokens.debug_keyword, Current)
+							a_builder.add_keyword (tokens.else_keyword, Current)
+							a_builder.add_keyword (tokens.elseif_keyword, Current)
+							a_builder.add_keyword (tokens.end_keyword, Current)
+							a_builder.add_keyword (tokens.ensure_keyword, Current)
+							a_builder.add_keyword (tokens.rescue_keyword, Current)
+							a_builder.add_keyword (tokens.retry_keyword, Current)
+							a_builder.add_keyword (tokens.separate_keyword, Current)
+						end
+						a_builder.add_keyword (tokens.across_keyword, Current)
+						a_builder.add_keyword (tokens.create_keyword, Current)
+						a_builder.add_keyword (tokens.from_keyword, Current)
+						a_builder.add_keyword (tokens.if_keyword, Current)
+						a_builder.add_keyword (tokens.inspect_keyword, Current)
 					end
-					if not is_only_query_expected then
-						a_builder.add_keyword (tokens.check_keyword, Current)
-						a_builder.add_keyword (tokens.debug_keyword, Current)
-						a_builder.add_keyword (tokens.else_keyword, Current)
-						a_builder.add_keyword (tokens.elseif_keyword, Current)
-						a_builder.add_keyword (tokens.end_keyword, Current)
-						a_builder.add_keyword (tokens.ensure_keyword, Current)
-						a_builder.add_keyword (tokens.rescue_keyword, Current)
-						a_builder.add_keyword (tokens.retry_keyword, Current)
-						a_builder.add_keyword (tokens.separate_keyword, Current)
-					end
-					a_builder.add_keyword (tokens.across_keyword, Current)
-					a_builder.add_keyword (tokens.create_keyword, Current)
-					a_builder.add_keyword (tokens.from_keyword, Current)
-					a_builder.add_keyword (tokens.if_keyword, Current)
-					a_builder.add_keyword (tokens.inspect_keyword, Current)
 				end
 			end
 		end
@@ -151,13 +153,20 @@ feature -- Output
 
 	append_feature_description_to_string (a_feature: ET_FEATURE; a_string: STRING_8)
 			-- Append description of `a_feature` to `a_string'.
+		local
+			l_creation_clients: ET_CLIENT_LIST
+			l_contract_viewer: ET_AST_CONTRACT_VIEWER
+			l_stream: KL_STRING_OUTPUT_STREAM
 		do
 			if is_only_creation_procedure_expected then
 				a_string.append_string (tokens.create_keyword.text)
+				create l_creation_clients.make_with_capacity (20)
+				a_feature.add_creation_clients_to (l_creation_clients, current_class, tokens.null_system_processor)
+				l_creation_clients.append_canonical_client_clause_to_string (" ", a_string)
 			else
 				a_string.append_string (tokens.feature_keyword.text)
+				a_feature.append_canonical_client_clause_to_string (" ", a_string)
 			end
-			a_feature.append_canonical_client_clause_to_string (" ", a_string)
 			a_string.append_string ("%N%T")
 			a_feature.append_canonical_signature_to_string (current_class, a_string)
 			a_feature.implementation_feature.append_header_comment_to_string ("%N%T%T%T", a_string)
@@ -165,6 +174,15 @@ feature -- Output
 				a_string.append_string ("%N%T%T%T-- (from class ")
 				a_string.append_string (a_feature.implementation_class.upper_name)
 				a_string.append_character (')')
+			end
+			create l_stream.make (a_string)
+			create l_contract_viewer.make (l_stream, tokens.null_system_processor)
+			a_string.append_character ('%N')
+			l_contract_viewer.indent
+			l_contract_viewer.indent
+			l_contract_viewer.print_feature_assertions (a_feature, current_class)
+			if a_string.ends_with ("%N") then
+				a_string.remove_tail (1)
 			end
 		end
 

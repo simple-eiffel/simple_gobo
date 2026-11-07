@@ -5,7 +5,7 @@
 		"Eiffel calls with actual arguments"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2016-2024, Eric Bezault and others"
+	copyright: "Copyright (c) 2016-2026, Eric Bezault and others"
 	license: "MIT License"
 
 deferred class ET_CALL_WITH_ACTUAL_ARGUMENTS
@@ -78,17 +78,32 @@ feature -- Measurement
 			with_arguments: attached arguments as l_arguments implies Result = l_arguments.count
 		end
 
+feature -- Formal arguments
+
+	add_formal_arguments (a_list: DS_ARRAYED_LIST_2 [detachable ET_IDENTIFIER, BOOLEAN])
+			-- Add to `a_list' all formal arguments appearing in  current actual
+			-- arguments and (recursively) in their subexpressions: set the boolean to
+			-- true if the formal argument name at the index corresponding to its seed
+			-- is not Void.
+		require
+			a_list_not_void: a_list /= Void
+		do
+			if attached arguments as l_arguments then
+				l_arguments.add_formal_arguments (a_list)
+			end
+		end
+
 feature -- Assertions
 
-	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION])
+	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION]; a_context: ET_TYPE_CONTEXT)
 			-- Add to `a_list' all old expressions appearing in current actual
-			-- arguments and (recursively) in their subexpressions.
+			-- arguments and (recursively) in their subexpressions when viewed from `a_context'.
 		require
 			a_list_not_void: a_list /= Void
 			no_void_item: not a_list.has_void
 		do
 			if attached arguments as l_arguments then
-				l_arguments.add_old_expressions (a_list)
+				l_arguments.add_old_expressions (a_list, a_context)
 			end
 		ensure
 			no_void_item: not a_list.has_void

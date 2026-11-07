@@ -4,7 +4,7 @@
 
 		"Gobo Eiffel Language Server, using protocol LSP"
 
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class GELSP
@@ -18,26 +18,50 @@ inherit
 			make,
 			server_name,
 			server_description,
+			call_hierarchy_incoming_calls_request_handler,
+			call_hierarchy_outgoing_calls_request_handler,
+			call_hierarchy_prepare_request_handler,
 			completion_request_handler,
 			definition_request_handler,
+			did_change_configuration_notification_handler,
 			did_change_text_document_notification_handler,
 			did_change_watched_files_notification_handler,
 			did_close_text_document_notification_handler,
 			did_open_text_document_notification_handler,
+			document_highlight_request_handler,
 			document_symbol_request_handler,
 			hover_request_handler,
+			implementation_request_handler,
+			selection_range_request_handler,
 			type_definition_request_handler,
+			type_hierarchy_prepare_request_handler,
+			type_hierarchy_subtypes_request_handler,
+			type_hierarchy_supertypes_request_handler,
+			workspace_symbol_request_handler,
+			on_call_hierarchy_prepare_request,
+			on_call_hierarchy_incoming_calls_request ,
+			on_call_hierarchy_outgoing_calls_request,
 			on_completion_request,
 			on_configuration_response,
 			on_definition_request,
+			on_did_change_configuration_notification,
 			on_did_change_text_document_notification,
 			on_did_change_watched_files_notification,
 			on_did_close_text_document_notification,
 			on_did_open_text_document_notification,
+			on_document_highlight_request,
 			on_document_symbol_request,
 			on_hover_request,
+			on_implementation_request,
 			on_initialized_notification,
+			on_selection_range_request,
+			on_shutdown_request,
 			on_type_definition_request,
+			on_type_hierarchy_prepare_request,
+			on_type_hierarchy_subtypes_request,
+			on_type_hierarchy_supertypes_request,
+			on_workspace_symbol_request,
+			message_factories,
 			add_other_options,
 			process_other_options,
 			error_handler
@@ -48,6 +72,9 @@ inherit
 	ET_GOBO_CLI
 
 	ET_SHARED_TOKEN_CONSTANTS
+		export {NONE} all end
+
+	ET_SHARED_CLASS_COMPARATOR_BY_NAME
 		export {NONE} all end
 
 	UT_SHARED_ISE_VARIABLES
@@ -78,6 +105,8 @@ feature {NONE} -- Initialization
 		do
 			create class_mapping.make (10_000)
 			create edited_classes.make (500)
+			create contract_views.make (500)
+			create flat_contract_views.make (500)
 			create ecf_libraries.make (100)
 			create diagnostics.make (100)
 				-- Set environment variables "$GOBO", "$GOBO_LIBRARY",
@@ -89,6 +118,11 @@ feature {NONE} -- Initialization
 			ise_variables.set_ise_variables
 			precursor (a_connection)
 		end
+
+feature -- Status report
+
+	is_configured: BOOLEAN
+			-- Has the language server been fully initialized?
 
 feature -- Access
 
@@ -111,6 +145,165 @@ feature -- Access
 			end
 		end
 
+feature -- Handling 'textDocument/prepareCallHierarchy' requests
+
+	on_call_hierarchy_prepare_request (a_request: LS_CALL_HIERARCHY_PREPARE_REQUEST; a_response: LS_CALL_HIERARCHY_PREPARE_RESPONSE)
+			-- Handle 'textDocument/prepareCallHierarchy' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
+			l_request_position: LS_POSITION
+			l_position: ET_POSITION
+			l_uri: LS_DOCUMENT_URI
+			l_call_hierarchy_builder: GELSP_CALL_HIERARCHY_BUILDER
+			l_browsable_name: detachable ET_BROWSABLE_NAME
+		do
+			l_uri := a_request.text_document.uri
+			l_request_position := a_request.position
+			l_position := position_from_lsp (l_request_position)
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				l_browsable_name := l_contract_view.browsable_name (l_position)
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				l_browsable_name := l_flat_contract_view.browsable_name (l_position)
+			elseif attached class_from_uri (l_uri) as l_class then
+				create l_browsable_name_finder.make (system_processor)
+				l_browsable_name_finder.find_browsable_name (l_position, l_class)
+				l_browsable_name := l_browsable_name_finder.last_browsable_name
+			end
+			if l_browsable_name /= Void then
+				create l_call_hierarchy_builder.make (a_response, Current)
+				l_browsable_name.process (l_call_hierarchy_builder)
+			end
+		end
+
+	on_call_hierarchy_incoming_calls_request (a_request: LS_CALL_HIERARCHY_INCOMING_CALLS_REQUEST; a_response: LS_CALL_HIERARCHY_INCOMING_CALLS_RESPONSE)
+			-- Handle 'callHierarchy/incomingCalls' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_caller_finder: GELSP_FEATURE_CALLER_FINDER
+		do
+			if attached {LS_STRING} a_request.item.data as l_data then
+				if attached class_mapping.value (l_data.utf8_value) as l_class then
+					on_client_hierarchy (l_class, a_response)
+				end
+			elseif not attached {LS_OBJECT} a_request.item.data as l_data then
+				-- Missing information.
+			elseif not attached {LS_STRING} l_data.value ("class") as l_filename then
+				-- Missing information.
+			elseif not attached {LS_NUMBER} l_data.value ("seed") as l_seed then
+				-- Missing information.
+			elseif not l_seed.is_integer then
+				-- Unknown seed.
+			elseif not attached class_mapping.value (l_filename.utf8_value) as l_class then
+				-- Unknown class
+			elseif attached l_class.seeded_feature (l_seed.to_integer) as l_feature then
+				create l_caller_finder.make (a_response, Current, system_processor)
+				l_caller_finder.find_callers_in_system (l_feature, l_class, l_class.current_system)
+			end
+		end
+
+	on_client_hierarchy (a_class: ET_CLASS; a_response: LS_CALL_HIERARCHY_INCOMING_CALLS_RESPONSE)
+			-- Handle 'callHierarchy/incomingCalls' request with the clients of `a_class`.
+			-- Build `a_response` accordingly.
+		local
+			l_all_classes: DS_ARRAYED_LIST [ET_CLASS]
+			l_client: ET_CLASS
+			l_clients: DS_ARRAYED_LIST [ET_CLASS]
+			l_sorter: DS_QUICK_SORTER [ET_CLASS]
+			i, nb: INTEGER
+		do
+			create l_all_classes.make (3000)
+			a_class.current_system.classes_do_recursive (agent l_all_classes.force_last)
+			create l_clients.make (300)
+			nb := l_all_classes.count
+			from i := 1 until i > nb loop
+				l_client := l_all_classes.item (i)
+				if attached l_client.supplier_classes as l_supplier_classes and then l_supplier_classes.has (a_class) then
+					l_clients.force_last (l_client)
+				end
+				i := i + 1
+			end
+			nb := l_clients.count
+			if nb > 1 then
+				create l_sorter.make (class_comparator_by_name)
+				l_clients.sort (l_sorter)
+			end
+			from i := 1 until i > nb loop
+				if attached client_hierarchy_item (l_clients.item (i)) as l_client_hierarchy_item then
+					a_response.add_call_hierarchy_incoming_call (l_client_hierarchy_item)
+				end
+				i := i + 1
+			end
+		end
+
+	on_call_hierarchy_outgoing_calls_request (a_request: LS_CALL_HIERARCHY_OUTGOING_CALLS_REQUEST; a_response: LS_CALL_HIERARCHY_OUTGOING_CALLS_RESPONSE)
+			-- Handle 'callHierarchy/incomingCalls' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_callee_finder: GELSP_FEATURE_CALLEE_FINDER
+		do
+			if attached {LS_STRING} a_request.item.data as l_data then
+				if attached class_mapping.value (l_data.utf8_value) as l_class then
+					on_supplier_hierarchy (l_class, a_response)
+				end
+			elseif not attached {LS_OBJECT} a_request.item.data as l_data then
+				-- Missing information.
+			elseif not attached {LS_STRING} l_data.value ("class") as l_filename then
+				-- Missing information.
+			elseif not attached {LS_NUMBER} l_data.value ("seed") as l_seed then
+				-- Missing information.
+			elseif not l_seed.is_integer then
+				-- Unknown seed.
+			elseif not attached class_mapping.value (l_filename.utf8_value) as l_class then
+				-- Unknown class
+			elseif attached l_class.seeded_feature (l_seed.to_integer) as l_feature then
+				create l_callee_finder.make (a_response, Current, system_processor)
+				l_callee_finder.find_callees (l_feature)
+			end
+		end
+
+	on_supplier_hierarchy (a_class: ET_CLASS; a_response: LS_CALL_HIERARCHY_OUTGOING_CALLS_RESPONSE)
+			-- Handle 'callHierarchy/incomingCalls' request with the suppliers of `a_class`.
+			-- Build `a_response` accordingly.
+		local
+			l_suppliers: DS_ARRAYED_LIST [ET_CLASS]
+			l_sorter: DS_QUICK_SORTER [ET_CLASS]
+			i, nb: INTEGER
+		do
+			if attached a_class.supplier_classes as l_supplier_classes then
+				create l_suppliers.make_from_linear (l_supplier_classes)
+				nb := l_suppliers.count
+				if nb > 1 then
+					create l_sorter.make (class_comparator_by_name)
+					l_suppliers.sort (l_sorter)
+				end
+				from i := 1 until i > nb loop
+					if attached supplier_hierarchy_item (l_suppliers.item (i)) as l_supplier_hierarchy_item then
+						a_response.add_call_hierarchy_outgoing_call (l_supplier_hierarchy_item)
+					end
+					i := i + 1
+				end
+			end
+		end
+
+	call_hierarchy_incoming_calls_request_handler: LS_SERVER_CALL_HIERARCHY_INCOMING_CALLS_REQUEST_HANDLER
+			-- Handler for 'callHierarchy/incomingCalls' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
+	call_hierarchy_outgoing_calls_request_handler: LS_SERVER_CALL_HIERARCHY_OUTGOING_CALLS_REQUEST_HANDLER
+			-- Handler for 'callHierarchy/outgoingCalls' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
+	call_hierarchy_prepare_request_handler: LS_SERVER_CALL_HIERARCHY_PREPARE_REQUEST_HANDLER
+			-- Handler for 'textDocument/prepareCallHierarchy' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
 feature -- Handling 'textDocument/completion' requests
 
 	on_completion_request (a_request: LS_COMPLETION_REQUEST; a_response: LS_COMPLETION_RESPONSE)
@@ -119,17 +312,18 @@ feature -- Handling 'textDocument/completion' requests
 		local
 			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
 			l_request_position: LS_POSITION
-			l_position: ET_COMPRESSED_POSITION
+			l_position: ET_POSITION
 			l_completion_builder: GELSP_COMPLETION_BUILDER
 		do
 			if attached class_from_uri (a_request.text_document.uri) as l_class then
 				l_request_position := a_request.position
-				create l_position.make (l_request_position.line.value.to_integer_32 + 1, l_request_position.character.value.to_integer_32)
+				l_position := position_from_lsp (l_request_position)
+				create {ET_COMPRESSED_POSITION} l_position.make (l_position.line, (l_position.column - 1).max (0))
 				create l_browsable_name_finder.make (system_processor)
 				l_browsable_name_finder.find_browsable_name (l_position, l_class)
 				if attached l_browsable_name_finder.last_browsable_name as l_last_browsable_name then
 					create l_completion_builder.make (a_response, Current)
-					l_last_browsable_name.build_completion (l_completion_builder, system_processor)
+					l_last_browsable_name.build_completion (l_completion_builder)
 				end
 			end
 		end
@@ -154,23 +348,34 @@ feature -- Handling 'textDocument/definition' requests
 			-- Handle 'textDocument/definition' request `a_request`.
 			-- Build `a_response` accordingly.
 		local
+			l_uri: LS_DOCUMENT_URI
 			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
 			l_request_position: LS_POSITION
-			l_position: ET_COMPRESSED_POSITION
+			l_position: ET_POSITION
+			l_definition_builder: GELSP_DEFINITION_BUILDER
+			l_contract_view_definition_builder: GELSP_CONTRACT_VIEW_DEFINITION_BUILDER
+			l_flat_contract_view_definition_builder: GELSP_FLAT_CONTRACT_VIEW_DEFINITION_BUILDER
+
 		do
-			if attached class_from_uri (a_request.text_document.uri) as l_class then
-				l_request_position := a_request.position
-				create l_position.make (l_request_position.line.value.to_integer_32 + 1, l_request_position.character.value.to_integer_32 + 1)
+			l_uri := a_request.text_document.uri
+			l_request_position := a_request.position
+			l_position := position_from_lsp (l_request_position)
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				if attached l_contract_view.browsable_name (l_position) as l_browsable_name then
+					create l_contract_view_definition_builder.make (a_response, l_uri, l_position, Current)
+					l_browsable_name.process (l_contract_view_definition_builder)
+				end
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				if attached l_flat_contract_view.browsable_name (l_position) as l_browsable_name then
+					create l_flat_contract_view_definition_builder.make (a_response, l_uri, l_position, Current)
+					l_browsable_name.process (l_flat_contract_view_definition_builder)
+				end
+			elseif attached class_from_uri (l_uri) as l_class then
 				create l_browsable_name_finder.make (system_processor)
 				l_browsable_name_finder.find_browsable_name (l_position, l_class)
-				if not attached l_browsable_name_finder.last_browsable_name as l_last_browsable_name then
-					-- No browsable name.
-				elseif not attached l_last_browsable_name.definition_ast_node as l_definition then
-					-- No definition
-				elseif l_definition.ast_node.contains_position (l_position) then
-					-- The browsable name is its own definition.
-				elseif attached location (l_definition.ast_node, l_definition.class_impl) as l_location then
-					a_response.add_location (l_location)
+				if attached l_browsable_name_finder.last_browsable_name as l_browsable_name then
+					create l_definition_builder.make (a_response, l_uri, l_position, Current)
+					l_browsable_name.process (l_definition_builder)
 				end
 			end
 		end
@@ -229,22 +434,30 @@ feature -- Handling 'textDocument/didClose' notifications
 			-- Handle 'textDocument/didClose' notification `a_notification`.
 			-- Actions to be executed when text documents are closed in the client.
 		local
+			l_uri: LS_DOCUMENT_URI
 			l_edited_class: ET_CLASS
 		do
-			if attached pathname_from_uri (a_notification.text_document.uri) as l_filename then
-				if attached class_mapping.value (l_filename) as l_class then
-					if attached {ET_EDITED_CLASS_TEXT_GROUP} l_class.group as l_edited_group then
-						l_class.set_group (l_edited_group.current_group)
-						l_edited_group.set_current_class (tokens.unknown_class)
+			l_uri := a_notification.text_document.uri
+			if attached pathname_from_uri (l_uri) as l_filename then
+				if l_filename.ends_with (contract_view_extension) then
+					contract_views.remove (l_uri)
+				elseif l_filename.ends_with (flat_contract_view_extension) then
+					flat_contract_views.remove (l_uri)
+				else
+					if attached class_mapping.value (l_filename) as l_class then
+						if attached {ET_EDITED_CLASS_TEXT_GROUP} l_class.group as l_edited_group then
+							l_class.set_group (l_edited_group.current_group)
+							l_edited_group.set_current_class (tokens.unknown_class)
+						end
 					end
-				end
-				if attached edited_classes.value (l_filename) as l_edited_group then
-					l_edited_class := l_edited_group.current_class
-					if not l_edited_class.is_unknown then
-						l_edited_class.set_group (l_edited_group.current_group)
-						l_edited_group.set_current_class (tokens.unknown_class)
+					if attached edited_classes.value (l_filename) as l_edited_group then
+						l_edited_class := l_edited_group.current_class
+						if not l_edited_class.is_unknown then
+							l_edited_class.set_group (l_edited_group.current_group)
+							l_edited_group.set_current_class (tokens.unknown_class)
+						end
+						edited_classes.remove (l_filename)
 					end
-					edited_classes.remove (l_filename)
 				end
 			end
 		end
@@ -292,12 +505,37 @@ feature -- Handling 'textDocument/didOpen' notifications
 			create Result.make
 		end
 
+feature -- Handling 'textDocument/documentHighlight' requests
+
+	on_document_highlight_request (a_request: LS_DOCUMENT_HIGHLIGHT_REQUEST; a_response: LS_DOCUMENT_HIGHLIGHT_RESPONSE)
+			-- Handle 'textDocument/documentHighlight' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_request_position: LS_POSITION
+			l_position: ET_POSITION
+			l_builder: GELSP_DOCUMENT_HIGHLIGHT_BUILDER
+		do
+			if attached class_from_uri (a_request.text_document.uri) as l_class then
+				l_request_position := a_request.position
+				l_position := position_from_lsp (l_request_position)
+				create l_builder.make (a_response, Current)
+				l_builder.build_document_highlight (l_position, l_class)
+			end
+		end
+
+	document_highlight_request_handler: LS_SERVER_DOCUMENT_HIGHLIGHT_REQUEST_HANDLER
+			-- Handler for 'textDocument/documentHighlight' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
 feature -- Handling 'textDocument/documentSymbol' requests
 
 	on_document_symbol_request (a_request: LS_DOCUMENT_SYMBOL_REQUEST; a_response: LS_DOCUMENT_SYMBOL_RESPONSE)
 			-- Handle 'textDocument/documentSymbol' request `a_request`.
 			-- Build `a_response` accordingly.
 		local
+			l_uri: LS_DOCUMENT_URI
 			l_feature_clause: ET_FEATURE_CLAUSE
 			l_feature_clause_symbols: DS_HASH_TABLE [LS_DOCUMENT_SYMBOL, ET_FEATURE_CLAUSE]
 			i, nb: INTEGER
@@ -307,7 +545,12 @@ feature -- Handling 'textDocument/documentSymbol' requests
 			l_text: STRING_8
 			l_name: LS_STRING
 		do
-			if attached class_from_uri (a_request.text_document.uri) as l_class then
+			l_uri := a_request.text_document.uri
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				add_contract_view_document_symbols (l_contract_view, a_response)
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				add_contract_view_document_symbols (l_flat_contract_view, a_response)
+			elseif attached class_from_uri (l_uri) as l_class then
 				if attached l_class.feature_clauses as l_feature_clauses then
 					nb := l_feature_clauses.count
 					create l_feature_clause_symbols.make_map (nb)
@@ -388,6 +631,58 @@ feature -- Handling 'textDocument/documentSymbol' requests
 			end
 		end
 
+	add_contract_view_document_symbols (a_contract_view: ET_BROWSABLE_CLASS; a_response: LS_DOCUMENT_SYMBOL_RESPONSE)
+			-- Add the document symbols of each feature in `a_contract_view` to `a_response` otherwise.
+		require
+			a_contract_view_not_void: a_contract_view /= Void
+			a_response_not_void: a_response /= Void
+		local
+			l_features: DS_HASH_TABLE [ET_BROWSABLE_FEATURE, ET_FEATURE_NAME]
+			l_feature: ET_BROWSABLE_FEATURE
+			l_feature_name: ET_FEATURE_NAME
+			l_document_symbol: LS_DOCUMENT_SYMBOL
+			l_range: LS_RANGE
+			l_selection_range: LS_RANGE
+			l_name: LS_STRING
+			l_kind: LS_SYMBOL_KIND
+			l_feature_clause_symbol: detachable LS_DOCUMENT_SYMBOL
+			l_last_feature_clause_name: detachable STRING_8
+			l_feature_clause_name: detachable STRING_8
+		do
+			l_features := a_contract_view.features
+			from l_features.start until l_features.after loop
+				l_feature := l_features.item_for_iteration
+				l_feature_name := l_features.key_for_iteration
+				l_range := range_to_lsp (l_feature.range)
+				l_selection_range := range_to_lsp (l_feature.feature_name_range)
+				l_feature_clause_name := l_feature.feature_clause_name
+				if l_last_feature_clause_name = Void or else not l_last_feature_clause_name.is_case_insensitive_equal (l_feature_clause_name) then
+					if l_feature_clause_name.is_empty then
+						l_name := tokens.feature_keyword.text
+					else
+						create l_name.make_from_utf8 (once "feature -- " + l_feature_clause_name)
+					end
+					create l_feature_clause_symbol.make (l_name, Void, {LS_SYMBOL_KINDS}.interface, Void, Void, l_range.twin, l_selection_range, Void)
+					a_response.add_document_symbol (l_feature_clause_symbol)
+					l_last_feature_clause_name := l_feature_clause_name
+				end
+				create l_name.make_from_utf8 (l_feature_name.lower_name)
+				if l_feature.eiffel_feature.is_attribute then
+					l_kind := {LS_SYMBOL_KINDS}.field
+				else
+					l_kind := {LS_SYMBOL_KINDS}.method
+				end
+				create l_document_symbol.make (l_name, Void, l_kind, Void, Void, l_range, l_selection_range, Void)
+				if l_feature_clause_symbol /= Void then
+					l_feature_clause_symbol.range.set_end (l_document_symbol.range.end_)
+					l_feature_clause_symbol.add_child (l_document_symbol)
+				else
+					a_response.add_document_symbol (l_document_symbol)
+				end
+				l_features.forth
+			end
+		end
+
 	document_symbol_request_handler: LS_SERVER_DOCUMENT_SYMBOL_REQUEST_HANDLER
 			-- Handler for 'textDocument/documentSymbol' requests
 		once ("OBJECT")
@@ -403,35 +698,43 @@ feature -- Handling 'textDocument/hover' requests
 		local
 			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
 			l_request_position: LS_POSITION
-			l_position: ET_COMPRESSED_POSITION
+			l_position: ET_POSITION
 			l_text: STRING_8
+			l_uri: LS_DOCUMENT_URI
+			l_browsable_name: detachable ET_BROWSABLE_NAME
 		do
-			if attached class_from_uri (a_request.text_document.uri) as l_class then
-				l_request_position := a_request.position
-				create l_position.make (l_request_position.line.value.to_integer_32 + 1, l_request_position.character.value.to_integer_32 + 1)
+			l_uri := a_request.text_document.uri
+			l_request_position := a_request.position
+			l_position := position_from_lsp (l_request_position)
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				l_browsable_name := l_contract_view.browsable_name (l_position)
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				l_browsable_name := l_flat_contract_view.browsable_name (l_position)
+			elseif attached class_from_uri (l_uri) as l_class then
 				create l_browsable_name_finder.make (system_processor)
 				l_browsable_name_finder.find_browsable_name (l_position, l_class)
-				if attached l_browsable_name_finder.last_browsable_name as l_last_browsable_name then
-					if hover_request_handler.is_markdown_supported then
-						create l_text.make (50)
-						l_text.append_string (once "```eiffel%N")
-						l_last_browsable_name.append_description_to_string (l_text)
-						l_text.append_string (once "%N```")
-						if l_text.count = 14 then
-							-- No description.
-						else
-							a_response.set_markdown_utf8 (l_text, Current)
-						end
+				l_browsable_name := l_browsable_name_finder.last_browsable_name
+			end
+			if l_browsable_name /= Void then
+				if hover_request_handler.is_markdown_supported then
+					create l_text.make (50)
+					l_text.append_string (once "```eiffel%N")
+					l_browsable_name.append_description_to_string (l_text)
+					l_text.append_string (once "%N```")
+					if l_text.count = 14 then
+						-- No description.
 					else
-						create l_text.make (50)
-						l_last_browsable_name.append_description_to_string (l_text)
-						if l_text.is_empty then
-							-- No description.
-						elseif hover_request_handler.is_plaintext_supported then
-							a_response.set_plaintext_utf8 (l_text, Current)
-						else
-							a_response.set_string_utf8 (l_text)
-						end
+						a_response.set_markdown_utf8 (l_text, Current)
+					end
+				else
+					create l_text.make (50)
+					l_browsable_name.append_description_to_string (l_text)
+					if l_text.is_empty then
+						-- No description.
+					elseif hover_request_handler.is_plaintext_supported then
+						a_response.set_plaintext_utf8 (l_text, Current)
+					else
+						a_response.set_string_utf8 (l_text)
 					end
 				end
 			end
@@ -443,35 +746,231 @@ feature -- Handling 'textDocument/hover' requests
 			create Result.make
 		end
 
+feature -- Handling 'textDocument/implementation' requests
+
+	on_implementation_request (a_request: LS_IMPLEMENTATION_REQUEST; a_response: LS_IMPLEMENTATION_RESPONSE)
+			-- Handle 'textDocument/implementation' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
+			l_request_position: LS_POSITION
+			l_position: ET_POSITION
+			l_uri: LS_DOCUMENT_URI
+			l_browsable_name: detachable ET_BROWSABLE_NAME
+			l_implementation_builder: GELSP_IMPLEMENTATION_BUILDER
+		do
+			l_uri := a_request.text_document.uri
+			l_request_position := a_request.position
+			l_position := position_from_lsp (l_request_position)
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				l_browsable_name := l_contract_view.browsable_name (l_position)
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				l_browsable_name := l_flat_contract_view.browsable_name (l_position)
+			elseif attached class_from_uri (l_uri) as l_class then
+				create l_browsable_name_finder.make (system_processor)
+				l_browsable_name_finder.find_browsable_name (l_position, l_class)
+				l_browsable_name := l_browsable_name_finder.last_browsable_name
+			end
+			if l_browsable_name /= Void then
+				create l_implementation_builder.make (a_response, Current)
+				l_browsable_name.process (l_implementation_builder)
+			end
+		end
+
+	implementation_request_handler: LS_SERVER_IMPLEMENTATION_REQUEST_HANDLER
+			-- Handler for 'textDocument/implementation' requests
+		once ("OBJECT")
+			create Result.make
+
+		end
+
+feature -- Handling 'textDocument/selectionRange' requests
+
+	on_selection_range_request (a_request: LS_SELECTION_RANGE_REQUEST; a_response: LS_SELECTION_RANGE_RESPONSE)
+			-- Handle 'textDocument/selectionRange' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_request_positions: LS_POSITION_LIST
+			l_request_position: LS_POSITION
+			l_position: ET_POSITION
+			l_builder: GELSP_SELECTION_RANGE_BUILDER
+		do
+			if attached class_from_uri (a_request.text_document.uri) as l_class then
+				l_request_positions := a_request.positions
+				if l_request_positions.count = 1 then
+					l_request_position := l_request_positions.value (1)
+					l_position := position_from_lsp (l_request_position)
+					create l_builder.make (a_response, Current)
+					l_builder.build_selection_range (l_position, l_class)
+				end
+			end
+		end
+
+	selection_range_request_handler: LS_SERVER_SELECTION_RANGE_REQUEST_HANDLER
+			-- Handler for 'textDocument/selectionRange' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
 feature -- Handling 'textDocument/typeDefinition' requests
 
 	on_type_definition_request (a_request: LS_TYPE_DEFINITION_REQUEST; a_response: LS_TYPE_DEFINITION_RESPONSE)
 			-- Handle 'textDocument/typeDefinition' request `a_request`.
 			-- Build `a_response` accordingly.
 		local
+			l_uri: LS_DOCUMENT_URI
 			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
 			l_request_position: LS_POSITION
-			l_position: ET_COMPRESSED_POSITION
+			l_position: ET_POSITION
+			l_type_definition_builder: GELSP_TYPE_DEFINITION_BUILDER
+			l_contract_view_type_definition_builder: GELSP_CONTRACT_VIEW_TYPE_DEFINITION_BUILDER
+			l_flat_contract_view_type_definition_builder: GELSP_FLAT_CONTRACT_VIEW_TYPE_DEFINITION_BUILDER
 		do
-			if attached class_from_uri (a_request.text_document.uri) as l_class then
-				l_request_position := a_request.position
-				create l_position.make (l_request_position.line.value.to_integer_32 + 1, l_request_position.character.value.to_integer_32 + 1)
+			l_uri := a_request.text_document.uri
+			l_request_position := a_request.position
+			l_position := position_from_lsp (l_request_position)
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				if attached l_contract_view.browsable_name (l_position) as l_browsable_name then
+					create l_contract_view_type_definition_builder.make (a_response, l_uri, l_position, Current)
+					l_browsable_name.process (l_contract_view_type_definition_builder)
+				end
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				if attached l_flat_contract_view.browsable_name (l_position) as l_browsable_name then
+					create l_flat_contract_view_type_definition_builder.make (a_response, l_uri, l_position, Current)
+					l_browsable_name.process (l_flat_contract_view_type_definition_builder)
+				end
+			elseif attached class_from_uri (l_uri) as l_class then
 				create l_browsable_name_finder.make (system_processor)
 				l_browsable_name_finder.find_browsable_name (l_position, l_class)
-				if not attached l_browsable_name_finder.last_browsable_name as l_last_browsable_name then
-					-- No browsable name.
-				elseif not attached l_last_browsable_name.type_definition_ast_node as l_type_definition then
-					-- No definition
-				elseif l_type_definition.ast_node.contains_position (l_position) then
-					-- The browsable name is its own definition.
-				elseif attached location (l_type_definition.ast_node, l_type_definition.class_impl) as l_location then
-					a_response.add_location (l_location)
+				if attached l_browsable_name_finder.last_browsable_name as l_last_browsable_name then
+					create l_type_definition_builder.make (a_response, l_uri, l_position, Current)
+					l_last_browsable_name.process (l_type_definition_builder)
 				end
 			end
 		end
 
 	type_definition_request_handler: LS_SERVER_TYPE_DEFINITION_REQUEST_HANDLER
 			-- Handler for 'textDocument/typeDefinition' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
+feature -- Handling 'textDocument/prepareTypeHierarchy' requests
+
+	on_type_hierarchy_prepare_request (a_request: LS_TYPE_HIERARCHY_PREPARE_REQUEST; a_response: LS_TYPE_HIERARCHY_PREPARE_RESPONSE)
+			-- Handle 'textDocument/prepareTypeHierarchy' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
+			l_request_position: LS_POSITION
+			l_position: ET_POSITION
+			l_uri: LS_DOCUMENT_URI
+			l_type_hierarchy_builder: GELSP_TYPE_HIERARCHY_BUILDER
+			l_browsable_name: detachable ET_BROWSABLE_NAME
+		do
+			l_uri := a_request.text_document.uri
+			l_request_position := a_request.position
+			l_position := position_from_lsp (l_request_position)
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				l_browsable_name := l_contract_view.browsable_name (l_position)
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				l_browsable_name := l_flat_contract_view.browsable_name (l_position)
+			elseif attached class_from_uri (l_uri) as l_class then
+				create l_browsable_name_finder.make (system_processor)
+				l_browsable_name_finder.find_browsable_name (l_position, l_class)
+				l_browsable_name := l_browsable_name_finder.last_browsable_name
+			end
+			if l_browsable_name /= Void then
+				create l_type_hierarchy_builder.make (a_response, Current)
+				l_browsable_name.process (l_type_hierarchy_builder)
+			end
+		end
+
+	on_type_hierarchy_subtypes_request (a_request: LS_TYPE_HIERARCHY_SUBTYPES_REQUEST; a_response: LS_TYPE_HIERARCHY_SUBTYPES_RESPONSE)
+			-- Handle 'typeHierarchy/subtypes' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_heirs: DS_ARRAYED_LIST [ET_CLASS]
+			l_heir: ET_CLASS
+			l_none: ET_CLASS
+			i, nb: INTEGER
+			l_sorter: DS_QUICK_SORTER [ET_CLASS]
+		do
+			if not attached {LS_STRING} a_request.item.data as l_data then
+				-- No information.
+			elseif attached class_mapping.value (l_data.utf8_value) as l_class then
+				l_none := l_class.current_system.none_type.base_class
+				create l_heirs.make (20)
+				l_class.add_heirs_exported_to (l_none, l_heirs)
+				nb := l_heirs.count
+				if nb > 1 then
+					create l_sorter.make (class_comparator_by_name)
+					l_heirs.sort (l_sorter)
+				end
+				from i := 1 until i > nb loop
+					l_heir := l_heirs.item (i)
+					if attached type_hierarchy_item (l_heir, l_heir.has_conforming_parent (l_class)) as l_type_hierarchy_item then
+						a_response.add_type_hierarchy_item (l_type_hierarchy_item)
+					end
+					i := i + 1
+				end
+			end
+		end
+
+	on_type_hierarchy_supertypes_request (a_request: LS_TYPE_HIERARCHY_SUPERTYPES_REQUEST; a_response: LS_TYPE_HIERARCHY_SUPERTYPES_RESPONSE)
+			-- Handle 'typeHierarchy/supertypes' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_set: DS_HASH_SET [ET_CLASS]
+			l_parents: DS_ARRAYED_LIST [ET_CLASS]
+			l_parent: ET_CLASS
+			l_none: ET_CLASS
+			i, nb: INTEGER
+			l_sorter: DS_QUICK_SORTER [ET_CLASS]
+		do
+			if not attached {LS_STRING} a_request.item.data as l_data then
+				-- No information.
+			elseif attached class_mapping.value (l_data.utf8_value) as l_class then
+				l_none := l_class.current_system.none_type.base_class
+				create l_set.make (20)
+				l_class.add_base_class_of_parents_exported_to (l_none, l_set)
+				nb := l_set.count
+				if nb = 0 then
+					-- No parents
+				elseif nb = 1 then
+					l_parent := l_set.first
+					if attached type_hierarchy_item (l_parent, l_class.has_conforming_parent (l_parent)) as l_type_hierarchy_item then
+						a_response.add_type_hierarchy_item (l_type_hierarchy_item)
+					end
+				else
+					create l_parents.make_from_linear (l_set)
+					create l_sorter.make (class_comparator_by_name)
+					l_parents.sort (l_sorter)
+					from i := 1 until i > nb loop
+						l_parent := l_parents.item (i)
+						if attached type_hierarchy_item (l_parent, l_class.has_conforming_parent (l_parent)) as l_type_hierarchy_item then
+							a_response.add_type_hierarchy_item (l_type_hierarchy_item)
+						end
+						i := i + 1
+					end
+				end
+			end
+		end
+
+	type_hierarchy_prepare_request_handler: LS_SERVER_TYPE_HIERARCHY_PREPARE_REQUEST_HANDLER
+			-- Handler for 'textDocument/prepareTypeHierarchy' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
+	type_hierarchy_subtypes_request_handler: LS_SERVER_TYPE_HIERARCHY_SUBTYPES_REQUEST_HANDLER
+			-- Handler for 'typeHierarchy/suntypes' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
+	type_hierarchy_supertypes_request_handler: LS_SERVER_TYPE_HIERARCHY_SUPERTYPES_REQUEST_HANDLER
+			-- Handler for 'typeHierarchy/supertypes' requests
 		once ("OBJECT")
 			create Result.make
 		end
@@ -483,8 +982,12 @@ feature -- Handling 'workspace/configuration' requests
 			-- to a 'workspace/configuration' request.
 		local
 			l_configurations: LS_ARRAY
-			l_value: STRING
+			l_value: STRING_8
+			l_old_config_ecf_filename: STRING_8
+			l_old_config_ecf_target: STRING_8
 		do
+			l_old_config_ecf_filename := config_ecf_filename
+			l_old_config_ecf_target := config_ecf_target
 			config_ecf_filename := Void
 			config_ecf_target := Void
 			if a_result /= Void then
@@ -506,13 +1009,36 @@ feature -- Handling 'workspace/configuration' requests
 					end
 				end
 			end
-			if did_change_watched_files_notification_handler.is_dynamic_registration_supported then
-				register_did_change_watched_files_options ("xxx", <<["**/*.ecf", {LS_WATCH_KINDS}.change], ["**/*", {LS_WATCH_KINDS}.delete]>>)
+			if not is_configured then
+				is_configured := True
+				if did_change_watched_files_notification_handler.is_dynamic_registration_supported then
+					register_did_change_watched_files_options ("xxx", <<["**/*.ecf", {LS_WATCH_KINDS}.change], ["**/*", {LS_WATCH_KINDS}.delete]>>)
+				end
+				if document_symbol_request_handler.is_dynamic_registration_supported then
+					register_document_symbol_options ("yyyy", Void, {LS_NULL}.null, Void)
+				end
+					-- First Eiffel code analysis.
+				build_eiffel_system
+			elseif config_ecf_filename /~ l_old_config_ecf_filename or config_ecf_target /~ l_old_config_ecf_target then
+					-- Settings have been changed.
+				set_system_processor
+				build_eiffel_system
 			end
-			if document_symbol_request_handler.is_dynamic_registration_supported then
-				register_document_symbol_options ("yyyy", Void, {LS_NULL}.null, Void)
-			end
-			build_eiffel_system
+		end
+
+feature -- Handling 'workspace/didChangeConfiguration' notifications
+
+	on_did_change_configuration_notification (a_notification: LS_DID_CHANGE_CONFIGURATION_NOTIFICATION)
+			-- Handle 'workspace/didChangeConfiguration' notification `a_notification`.
+			-- Actions to be executed when watched files are changed.
+		do
+			send_configuration_request (<<[Void, "gobo-eiffel.workspaceEcfFile"], [Void, "gobo-eiffel.workspaceEcfTarget"]>>)
+		end
+
+	did_change_configuration_notification_handler: LS_SERVER_DID_CHANGE_CONFIGURATION_NOTIFICATION_HANDLER
+			-- Handler for 'workspace/didChangeConfiguration' notifications
+		once ("OBJECT")
+			create Result.make
 		end
 
 feature -- Handling 'workspace/didChangeWatchedFiles' notifications
@@ -653,12 +1179,189 @@ feature -- Handling 'workspace/didChangeWatchedFiles' notifications
 			create Result.make
 		end
 
-feature -- Handling 'initialized' notification
+feature -- Handling 'workspace/symbol' requests
+
+	on_workspace_symbol_request (a_request: LS_WORKSPACE_SYMBOL_REQUEST; a_response: LS_WORKSPACE_SYMBOL_RESPONSE)
+			-- Handle 'workspace/symbol' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_query: STRING_8
+			i: INTEGER
+			l_feature_name: detachable STRING_8
+			l_class: ET_CLASS
+			l_class_name: STRING_8
+			l_symbol: LS_WORKSPACE_SYMBOL
+		do
+			l_query := a_request.query.utf8_value
+			if not l_query.ends_with ("*") then
+				l_query := l_query + "*"
+			end
+			l_class_name := l_query.as_upper
+			i := l_query.index_of ('.', 1)
+			if i /= 0 then
+				l_class_name := l_class_name.substring (1, i - 1)
+				l_feature_name := l_query.substring (i + 1, l_query.count)
+			end
+			if l_feature_name = Void then
+				from class_mapping.start until class_mapping.after loop
+					l_class := class_mapping.item_for_iteration
+					l_class_name := l_class.upper_name
+					if attached location (l_class.name, l_class) as l_location then
+						create l_symbol.make (l_class_name, {LS_SYMBOL_KINDS}.class_, Void, Void, l_location, Void)
+						a_response.add_workspace_symbol (l_symbol)
+					end
+					class_mapping.forth
+				end
+			elseif not l_class_name.is_empty then
+				from class_mapping.start until class_mapping.after loop
+					l_class := class_mapping.item_for_iteration
+					if l_class_name.same_string (l_class.upper_name) then
+						add_features_workspace_symbols (l_class.queries, l_class, a_response)
+						add_features_workspace_symbols (l_class.procedures, l_class, a_response)
+					end
+					class_mapping.forth
+				end
+			end
+		end
+
+	add_features_workspace_symbols (a_feature_list: ET_FEATURE_LIST; a_class: ET_CLASS; a_response: LS_WORKSPACE_SYMBOL_RESPONSE)
+			-- Add the workspace symbols of each feature in `a_feature_list` declared
+			-- in `a_class` to `a_response` otherwise.
+		require
+			a_feature_list_not_void: a_feature_list /= Void
+			a_class_not_void: a_class /= Void
+			a_response_not_void: a_response /= Void
+		local
+			i, nb: INTEGER
+			l_feature: ET_FEATURE
+			l_class_name: STRING_8
+			l_feature_name: STRING_8
+			l_symbol: LS_WORKSPACE_SYMBOL
+			l_kind: LS_SYMBOL_KIND
+		do
+			l_class_name := a_class.upper_name
+			nb := a_feature_list.count
+			from i := 1 until i > nb loop
+				l_feature := a_feature_list.item (i)
+				l_feature_name := l_feature.lower_name
+				l_feature := l_feature.implementation_feature
+				if attached location (l_feature.name, l_feature.implementation_class) as l_location then
+					l_kind := if l_feature.is_attribute then {LS_SYMBOL_KINDS}.field else {LS_SYMBOL_KINDS}.method end
+					create l_symbol.make (l_class_name + "." + l_feature_name, l_kind, Void, Void, l_location, Void)
+					a_response.add_workspace_symbol (l_symbol)
+				end
+				i := i + 1
+			end
+		end
+
+	workspace_symbol_request_handler: LS_SERVER_WORKSPACE_SYMBOL_REQUEST_HANDLER
+			-- Handler for 'workspace/symbol' requests
+		once ("OBJECT")
+			create Result.make
+		end
+
+feature -- Handling 'initialized' notifications
 
 	on_initialized_notification (a_notification: LS_INITIALIZED_NOTIFICATION)
 			-- Handle 'initialized' notification `a_notification`.
 		do
+			if did_change_configuration_notification_handler.is_dynamic_registration_supported then
+				register_did_change_configuration_options ("zzz")
+			end
 			send_configuration_request (<<[Void, "gobo-eiffel.workspaceEcfFile"], [Void, "gobo-eiffel.workspaceEcfTarget"]>>)
+		end
+
+feature -- Handling 'shutdown' requests
+
+	on_shutdown_request (a_request: LS_SHUTDOWN_REQUEST)
+			-- Handle 'shutdown' request `a_request`.
+			-- Actions to be executed when client want to
+			-- shutdown the server.
+		do
+			send_diagnostics
+		end
+
+feature -- Handling '$/goboEiffel/formatView' requests
+
+	on_format_view_request (a_request: GELSP_FORMAT_VIEW_REQUEST; a_response: GELSP_FORMAT_VIEW_RESPONSE)
+			-- Handle '$/goboEiffel/formatView' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_uri: LS_DOCUMENT_URI
+			l_format_view: GELSP_FORMAT_VIEW
+			l_text: STRING_8
+			l_ls_text: LS_STRING
+			l_contract_view: detachable ET_BROWSABLE_CLASS
+		do
+			l_uri := a_request.params.uri
+			create l_text.make (500)
+			if attached pathname_from_uri (l_uri) as l_filename then
+				if l_filename.ends_with (contract_view_extension) then
+					l_contract_view := contract_view (l_uri, Void, l_text)
+				elseif l_filename.ends_with (flat_contract_view_extension) then
+					l_contract_view := flat_contract_view (l_uri, Void, l_text)
+				end
+			end
+			create l_ls_text.make_from_utf8 (l_text)
+			create l_format_view.make (l_uri, l_ls_text)
+			a_response.set_result (l_format_view)
+		end
+
+	format_view_request_handler: GELSP_FORMAT_VIEW_REQUEST_HANDLER
+			-- Handler for '$/goboEiffel/formatView' requests
+		once ("OBJECT")
+			create Result.make
+		ensure
+			format_view_request_handler_not_void: Result /= Void
+		end
+
+feature -- Handling '$/goboEiffel/sourceDefinition' requests
+
+	on_source_definition_request (a_request: GELSP_SOURCE_DEFINITION_REQUEST; a_response: LS_DEFINITION_RESPONSE)
+			-- Handle '$/goboEiffel/sourceDefinition' request `a_request`.
+			-- Build `a_response` accordingly.
+		local
+			l_uri: LS_DOCUMENT_URI
+			l_browsable_name_finder: ET_BROWSABLE_NAME_FINDER
+			l_request_position: LS_POSITION
+			l_position: ET_POSITION
+			l_definition_builder: GELSP_DEFINITION_BUILDER
+			l_browsable_name: detachable ET_BROWSABLE_NAME
+		do
+			l_uri := a_request.params.text_document.uri
+			l_request_position := a_request.params.position
+			l_position := position_from_lsp (l_request_position)
+			if attached contract_view (l_uri, Void, Void) as l_contract_view then
+				l_browsable_name := l_contract_view.browsable_name (l_position)
+			elseif attached flat_contract_view (l_uri, Void, Void) as l_flat_contract_view then
+				l_browsable_name := l_flat_contract_view.browsable_name (l_position)
+			elseif attached class_from_uri (l_uri) as l_class then
+				create l_browsable_name_finder.make (system_processor)
+				l_browsable_name_finder.find_browsable_name (l_position, l_class)
+				l_browsable_name := l_browsable_name_finder.last_browsable_name
+			end
+			if l_browsable_name /= Void then
+				create l_definition_builder.make (a_response, l_uri, l_position, Current)
+				l_browsable_name.process (l_definition_builder)
+			end
+		end
+
+	source_definition_request_handler: GELSP_SOURCE_DEFINITION_REQUEST_HANDLER
+			-- Handler for '$/goboEiffel/sourceDefinition' requests
+		once ("OBJECT")
+			create Result.make
+		ensure
+			source_definition_request_handler_not_void: Result /= Void
+		end
+
+feature {LS_RESPONSE_HANDLER, LS_REQUEST_HANDLER} -- Implementation
+
+	message_factories: DS_HASH_TABLE [LS_MESSAGE_FACTORY, LS_STRING]
+			-- Message factories, indexed by methods
+		once ("OBJECT")
+			Result := precursor
+			Result.force (create {GELSP_FORMAT_VIEW_REQUEST_FACTORY}.make, {GELSP_FORMAT_VIEW_REQUEST}.method)
+			Result.force (create {GELSP_SOURCE_DEFINITION_REQUEST_FACTORY}.make, {GELSP_SOURCE_DEFINITION_REQUEST}.method)
 		end
 
 feature {NONE} -- Eiffel processing
@@ -674,6 +1377,7 @@ feature {NONE} -- Eiffel processing
 			l_filename: STRING_8
 			l_message: STRING_8
 		do
+			send_custom_notification (busy_notification_method, Void)
 			if full_compilation_count >= max_full_compilation_count or total_compilation_count >= max_total_compilation_count then
 				if trace_value ~ {LS_TRACE_VALUES}.message then
 					send_log_trace_message_notification ("Restarting Eiffel language server...")
@@ -685,55 +1389,60 @@ feature {NONE} -- Eiffel processing
 					end
 					send_log_trace_verbose_notification ("Restarting Eiffel language server...", l_message)
 				end
-				send_diagnostics
-				Exceptions.die (2)
-			end
-			if debug_mode then
-				dt1 := system_processor.benchmark_start_time
-			end
-			reset
-			{MEMORY}.full_collect
-			find_ecf_filename
-			l_filename := ecf_filename
-			if l_filename = Void then
-				l_filename := file_system.nested_pathname ("${GOBO}", <<"library", "common", "config", "ecf", "default.ecf">>)
-				l_filename := Execution_environment.interpreted_string (l_filename)
-			end
-			if debug_mode then
-				dt2 := system_processor.benchmark_start_time
-			end
-			create l_file.make (l_filename)
-			l_file.open_read
-			if l_file.is_open_read then
-				parse_ecf_file (l_file)
-				l_file.close
+				if not restart_requested then
+					send_custom_notification (restart_notification_method, Void)
+					restart_requested := True
+				end
 			else
-				report_cannot_read_error (l_filename)
-			end
-			if dt2 /= Void then
-				system_processor.record_end_time (dt2, "Read ECF file")
-			end
-			if attached eiffel_system as l_system then
-				system_processor.compile_degree_6 (l_system)
-				build_class_mapping (l_system)
-				create l_classes.make (l_system.class_count_recursive)
-				l_system.classes_do_recursive (agent l_classes.force_last)
-				system_processor.compile_classes (l_classes)
-				send_diagnostics
-				full_compilation_count := full_compilation_count + 1
-				incremental_compilation_count := 0
-				total_compilation_count := total_compilation_count + 1
 				if debug_mode then
-					std.error.put_line ("ECF file count: " + ecf_libraries.count.out)
-					std.error.put_line ("Full compilation count: " + full_compilation_count.out)
-					std.error.put_line ("Incremental compilation count: " + incremental_compilation_count.out)
-					std.error.put_line ("Total compilation count: " + total_compilation_count.out)
-					std.error.put_line ("Class count: " + class_mapping.count.out)
+					dt1 := system_processor.benchmark_start_time
+				end
+				reset
+				{MEMORY}.full_collect
+				find_ecf_filename
+				l_filename := ecf_filename
+				if l_filename = Void then
+					l_filename := file_system.nested_pathname ("${GOBO}", <<"library", "common", "config", "ecf", "default.ecf">>)
+					l_filename := Execution_environment.interpreted_string (l_filename)
+				end
+				if debug_mode then
+					dt2 := system_processor.benchmark_start_time
+				end
+				create l_file.make (l_filename)
+				l_file.open_read
+				if l_file.is_open_read then
+					parse_ecf_file (l_file)
+					l_file.close
+				else
+					report_cannot_read_error (l_filename)
+				end
+				if dt2 /= Void then
+					system_processor.record_end_time (dt2, "Read ECF file")
+				end
+				if attached eiffel_system as l_system then
+					system_processor.compile_degree_6 (l_system)
+					build_class_mapping (l_system)
+					create l_classes.make (l_system.class_count_recursive)
+					l_system.classes_do_recursive (agent l_classes.force_last)
+					system_processor.compile_classes (l_classes)
+					send_diagnostics
+					full_compilation_count := full_compilation_count + 1
+					incremental_compilation_count := 0
+					total_compilation_count := total_compilation_count + 1
+					if debug_mode then
+						std.error.put_line ("ECF file count: " + ecf_libraries.count.out)
+						std.error.put_line ("Full compilation count: " + full_compilation_count.out)
+						std.error.put_line ("Incremental compilation count: " + incremental_compilation_count.out)
+						std.error.put_line ("Total compilation count: " + total_compilation_count.out)
+						std.error.put_line ("Class count: " + class_mapping.count.out)
+					end
+				end
+				refresh_format_views
+				if dt1 /= Void then
+					system_processor.record_end_time (dt1, "Total Time")
 				end
 			end
-			if dt1 /= Void then
-				system_processor.record_end_time (dt1, "Total Time")
-			end
+			send_custom_notification (not_busy_notification_method, Void)
 		end
 
 	refresh_eiffel_system (a_preparse_needed: BOOLEAN)
@@ -753,44 +1462,48 @@ feature {NONE} -- Eiffel processing
 					l_message := "Restarting Eiffel language server after " + max_total_compilation_count.out + " Eiffel compilations..."
 					send_log_trace_verbose_notification ("Restarting Eiffel language server...", l_message)
 				end
-				send_diagnostics
-				Exceptions.die (2)
-			end
-			if debug_mode then
-				dt1 := system_processor.benchmark_start_time
-			end
-			if attached eiffel_system as l_system then
-				reset_class_mapping (True)
-				if a_preparse_needed then
-					system_processor.compile_degree_6 (l_system)
-				else
-					if debug_mode then
-						dt2 := system_processor.benchmark_start_time
-					end
-					l_system.reset_classes_incremental_recursive (system_processor)
-					if dt2 /= Void then
-						system_processor.record_end_time (dt2, "Reset class incremental")
-						dt2 := system_processor.benchmark_start_time
-					end
+				if not restart_requested then
+					send_custom_notification (restart_notification_method, Void)
+					restart_requested := True
 				end
-				build_class_mapping (l_system)
-				if dt2 /= Void then
-					system_processor.record_end_time (dt2, "Build class mapping")
-				end
-				create l_classes.make (l_system.class_count_recursive)
-				l_system.classes_do_recursive (agent l_classes.force_last)
-				system_processor.compile_classes (l_classes)
-				send_diagnostics
-				incremental_compilation_count := incremental_compilation_count + 1
-				total_compilation_count := total_compilation_count + 1
+			else
 				if debug_mode then
-					std.error.put_line ("Full compilation count: " + full_compilation_count.out)
-					std.error.put_line ("Incremental compilation count: " + incremental_compilation_count.out)
-					std.error.put_line ("Total compilation count: " + total_compilation_count.out)
+					dt1 := system_processor.benchmark_start_time
 				end
-			end
-			if dt1 /= Void then
-				system_processor.record_end_time (dt1, "Total Time")
+				if attached eiffel_system as l_system then
+					reset_class_mapping (True)
+					if a_preparse_needed then
+						system_processor.compile_degree_6 (l_system)
+					else
+						if debug_mode then
+							dt2 := system_processor.benchmark_start_time
+						end
+						l_system.reset_classes_incremental_recursive (system_processor)
+						if dt2 /= Void then
+							system_processor.record_end_time (dt2, "Reset class incremental")
+							dt2 := system_processor.benchmark_start_time
+						end
+					end
+					build_class_mapping (l_system)
+					if dt2 /= Void then
+						system_processor.record_end_time (dt2, "Build class mapping")
+					end
+					create l_classes.make (l_system.class_count_recursive)
+					l_system.classes_do_recursive (agent l_classes.force_last)
+					system_processor.compile_classes (l_classes)
+					send_diagnostics
+					incremental_compilation_count := incremental_compilation_count + 1
+					total_compilation_count := total_compilation_count + 1
+					if debug_mode then
+						std.error.put_line ("Full compilation count: " + full_compilation_count.out)
+						std.error.put_line ("Incremental compilation count: " + incremental_compilation_count.out)
+						std.error.put_line ("Total compilation count: " + total_compilation_count.out)
+					end
+				end
+				refresh_format_views
+				if dt1 /= Void then
+					system_processor.record_end_time (dt1, "Total Time")
+				end
 			end
 		end
 
@@ -802,9 +1515,13 @@ feature {NONE} -- Eiffel processing
 			ecf_libraries.wipe_out
 			reset_class_mapping (False)
 			error_handler.syntax_error_actions.wipe_out
-			error_handler.syntax_error_actions.extend (agent report_syntax_error)
+			error_handler.syntax_error_actions.extend (agent report_syntax_error (?, {LS_DIAGNOSTIC_SEVERITIES}.error))
+			error_handler.syntax_warning_actions.wipe_out
+			error_handler.syntax_warning_actions.extend (agent report_syntax_error (?, {LS_DIAGNOSTIC_SEVERITIES}.warning))
 			error_handler.validity_error_actions.wipe_out
-			error_handler.validity_error_actions.extend (agent report_validity_error)
+			error_handler.validity_error_actions.extend (agent report_validity_error (?, {LS_DIAGNOSTIC_SEVERITIES}.error))
+			error_handler.eiffel_warning_actions.wipe_out
+			error_handler.eiffel_warning_actions.extend (agent report_validity_error (?, {LS_DIAGNOSTIC_SEVERITIES}.warning))
 		end
 
 	find_ecf_filename
@@ -819,7 +1536,11 @@ feature {NONE} -- Eiffel processing
 			ecf_filename := Void
 			if attached workspace_folder_root_path as l_root_path then
 				if attached config_ecf_filename as l_config_ecf_filename then
-					ecf_filename := file_system.pathname (l_root_path, l_config_ecf_filename)
+					if file_system.is_absolute_pathname (l_config_ecf_filename) then
+						ecf_filename := l_config_ecf_filename
+					else
+						ecf_filename := file_system.pathname (l_root_path, l_config_ecf_filename)
+					end
 				else
 					create l_dir.make (l_root_path)
 					create l_filenames.make (5)
@@ -923,10 +1644,88 @@ feature {NONE} -- Eiffel processing
 			edited_classes_reset: across edited_classes as l_edited_class all l_edited_class.current_class.is_unknown end
 		end
 
-	report_validity_error (a_error: ET_VALIDITY_ERROR)
+	refresh_format_views
+			-- Refresh format views current open in the client.
+		local
+			l_uri: LS_DOCUMENT_URI
+			l_format_view: GELSP_FORMAT_VIEW
+			l_text: STRING_8
+			l_ls_text: LS_STRING
+		do
+			from contract_views.start until contract_views.after loop
+				l_uri := contract_views.key_for_iteration
+				create l_text.make (500)
+				if attached contract_view (l_uri, Void, l_text) as l_contract_view then
+					contract_views.forth
+				else
+					contract_views.remove (l_uri)
+				end
+				create l_ls_text.make_from_utf8 (l_text)
+				create l_format_view.make (l_uri, l_ls_text)
+				send_custom_notification (format_view_update_notification_method, l_format_view)
+			end
+			from flat_contract_views.start until flat_contract_views.after loop
+				l_uri := flat_contract_views.key_for_iteration
+				create l_text.make (500)
+				if attached flat_contract_view (l_uri, Void, l_text) as l_flat_contract_view then
+					flat_contract_views.forth
+				else
+					flat_contract_views.remove (l_uri)
+				end
+				create l_ls_text.make_from_utf8 (l_text)
+				create l_format_view.make (l_uri, l_ls_text)
+				send_custom_notification (format_view_update_notification_method, l_format_view)
+			end
+		end
+
+	report_syntax_error (a_error: ET_SYNTAX_ERROR; a_severity: LS_DIAGNOSTIC_SEVERITY)
+			-- Report syntax error.
+		require
+			a_error_not_void: a_error /= Void
+			a_severity_not_void: a_severity /= Void
+		local
+			l_filename: STRING_8
+			l_diagnostic_list: detachable LS_DIAGNOSTIC_LIST
+			l_diagnostic: LS_DIAGNOSTIC
+			l_range: LS_RANGE
+			l_position: ET_POSITION
+			l_last_position_plus_one: ET_COMPRESSED_POSITION
+			l_message: STRING
+			l_error_message: LS_STRING
+			l_code: LS_STRING
+		do
+			l_filename := a_error.filename
+			l_position := a_error.position
+			l_diagnostic_list := diagnostics.value (l_filename)
+			if l_diagnostic_list = Void then
+				create l_diagnostic_list.make_with_capacity (10)
+				diagnostics.force (l_diagnostic_list, l_filename)
+			end
+			if attached a_error.ast_node as l_ast_node then
+				l_range := range (l_ast_node, tokens.unknown_class)
+			else
+				create l_last_position_plus_one.make (l_position.line, l_position.column + 1)
+				create l_range.make (position_to_lsp (l_position), position_to_lsp (l_last_position_plus_one))
+			end
+			if a_severity.value = {LS_DIAGNOSTIC_SEVERITIES}.warning.value then
+				l_code := "SWRN"
+				l_message := a_error.message ("Syntax warning: $2")
+			else
+				l_code := "SERR"
+				l_message := a_error.message ("Syntax error: $2")
+			end
+			l_message.replace_substring_all ("%R%N", "\n")
+			l_message.replace_substring_all ("%N", "\n")
+			create l_error_message.make_from_utf8 (l_message)
+			create l_diagnostic.make (l_range, a_severity, l_code, Void, "Eiffel", l_error_message, Void, Void, Void)
+			l_diagnostic_list.put_last (l_diagnostic)
+		end
+
+	report_validity_error (a_error: ET_VALIDITY_ERROR; a_severity: LS_DIAGNOSTIC_SEVERITY)
 			-- Report validity error.
 		require
 			a_error_not_void: a_error /= Void
+			a_severity_not_void: a_severity /= Void
 		local
 			l_class_impl: ET_CLASS
 			l_diagnostic_list: detachable LS_DIAGNOSTIC_LIST
@@ -947,7 +1746,9 @@ feature {NONE} -- Eiffel processing
 					diagnostics.force (l_diagnostic_list, l_filename)
 				end
 				l_position := a_error.position
-				if attached {ET_AST_NODE} l_position as l_ast_node then
+				if attached a_error.ast_node as l_ast_node then
+					l_range := range (l_ast_node, l_class_impl)
+				elseif attached {ET_AST_NODE} l_position as l_ast_node then
 					l_range := range (l_ast_node, l_class_impl)
 				else
 					create l_last_position_plus_one.make (l_position.line, l_position.column + 1)
@@ -972,38 +1773,9 @@ feature {NONE} -- Eiffel processing
 					l_message := "class " + l_class_impl.upper_name + ":" + l_message
 				end
 				create l_error_message.make_from_utf8 (l_message)
-				create l_diagnostic.make (l_range, {LS_DIAGNOSTIC_SEVERITIES}.error, l_code, Void, "Eiffel", l_error_message, Void, Void, Void)
+				create l_diagnostic.make (l_range, a_severity, l_code, Void, "Eiffel", l_error_message, Void, Void, Void)
 				l_diagnostic_list.put_last (l_diagnostic)
 			end
-		end
-
-	report_syntax_error (a_error: ET_SYNTAX_ERROR)
-			-- Report syntax error.
-		require
-			a_error_not_void: a_error /= Void
-		local
-			l_filename: STRING_8
-			l_diagnostic_list: detachable LS_DIAGNOSTIC_LIST
-			l_diagnostic: LS_DIAGNOSTIC
-			l_range: LS_RANGE
-			l_position: ET_POSITION
-			l_last_position_plus_one: ET_COMPRESSED_POSITION
-			l_message: STRING
-			l_error_message: LS_STRING
-		do
-			l_filename := a_error.filename
-			l_position := a_error.position
-			l_diagnostic_list := diagnostics.value (l_filename)
-			if l_diagnostic_list = Void then
-				create l_diagnostic_list.make_with_capacity (10)
-				diagnostics.force (l_diagnostic_list, l_filename)
-			end
-			create l_last_position_plus_one.make (l_position.line, l_position.column + 1)
-			create l_range.make (position (l_position, tokens.unknown_class), position (l_last_position_plus_one, tokens.unknown_class))
-			l_message := "Syntax error"
-			create l_error_message.make_from_utf8 (l_message)
-			create l_diagnostic.make (l_range, {LS_DIAGNOSTIC_SEVERITIES}.error, Void, Void, "Eiffel", l_error_message, Void, Void, Void)
-			l_diagnostic_list.put_last (l_diagnostic)
 		end
 
 	send_diagnostics
@@ -1012,15 +1784,13 @@ feature {NONE} -- Eiffel processing
 			l_notification: LS_PUBLISH_DIAGNOSTICS_NOTIFICATION
 			l_diagnostic_list: LS_DIAGNOSTIC_LIST
 			l_filename: STRING_8
-			l_uri: UT_URI
-			l_string: LS_STRING
+			l_uri: LS_DOCUMENT_URI
 		do
 			from diagnostics.start until diagnostics.after loop
 				l_diagnostic_list := diagnostics.item_for_iteration
 				l_filename := diagnostics.key_for_iteration
-				l_uri := {UT_FILE_URI_ROUTINES}.filename_to_uri (l_filename)
-				create l_string.make_from_string (l_uri.full_reference)
-				create l_notification.make (l_string, Void, l_diagnostic_list)
+				l_uri := pathname_to_uri (l_filename)
+				create l_notification.make (l_uri, Void, l_diagnostic_list)
 				send_message (l_notification)
 				if l_diagnostic_list.count = 0 then
 					diagnostics.remove (l_filename)
@@ -1054,6 +1824,104 @@ feature -- Eiffel system
 	edited_classes: DS_HASH_TABLE [ET_EDITED_CLASS_TEXT_GROUP, STRING_8]
 			-- Text of Eiffel classes currently edited in the client, indexed by filenames
 
+	contract_views: DS_HASH_TABLE [ET_BROWSABLE_CLASS, LS_DOCUMENT_URI]
+			-- Contract views currently being opened in the client, indexed by format view URI
+
+	contract_view (a_uri: LS_DOCUMENT_URI; a_class: detachable ET_CLASS; a_text: detachable STRING_8): detachable ET_BROWSABLE_CLASS
+			-- Contract view of the class associated with the contract view URI `a_uri`.
+			-- `a_class`, if provided, is the AST of that class.
+			-- `a_text`, if provided, is where the text of the contract view will be written.
+		require
+			a_uri_not_void: a_uri /= Void
+		local
+			l_contract_viewer: ET_BROWSABLE_CLASS_CONTRACT_VIEWER
+			l_stream: KL_STRING_OUTPUT_STREAM
+			l_text: STRING_8
+			l_class: ET_CLASS
+		do
+			if a_text = Void and attached contract_views.value (a_uri) as l_contract_view then
+				Result := l_contract_view
+			else
+				l_class := a_class
+				if l_class = Void then
+					if attached pathname_from_uri (a_uri) as l_filename and then l_filename.ends_with (contract_view_extension) then
+						l_filename.remove_tail (contract_view_extension.count - 2)
+						if attached class_mapping.value (l_filename) as l_mapped_class then
+							l_class := l_mapped_class
+						end
+					end
+				end
+				if l_class /= Void then
+					l_text := a_text
+					if l_text = Void then
+						create l_text.make (500)
+					end
+					create l_stream.make (l_text)
+					create l_contract_viewer.make (l_stream, system_processor)
+					l_contract_viewer.set_bom_enabled (False)
+					l_contract_viewer.set_flat_enabled (False)
+					l_class.process (l_contract_viewer)
+					Result := l_contract_viewer.last_browsable_class
+					if Result /= Void then
+						if contract_views.has (a_uri) then
+							contract_views.replace (Result, a_uri)
+						else
+							contract_views.force (Result, a_uri)
+						end
+					end
+				end
+			end
+		end
+
+	flat_contract_views: DS_HASH_TABLE [ET_BROWSABLE_CLASS, LS_DOCUMENT_URI]
+			-- Flat contract views currently being opened in the client, indexed by format view URI
+
+	flat_contract_view (a_uri: LS_DOCUMENT_URI; a_class: detachable ET_CLASS; a_text: detachable STRING_8): detachable ET_BROWSABLE_CLASS
+			-- Flat contract view of the class associated with the flat contract view URI `a_uri`.
+			-- `a_class`, if provided, is the AST of that class.
+			-- `a_text`, if provided, is where the text of the flat contract view will be written.
+		require
+			a_uri_not_void: a_uri /= Void
+		local
+			l_contract_viewer: ET_BROWSABLE_CLASS_CONTRACT_VIEWER
+			l_stream: KL_STRING_OUTPUT_STREAM
+			l_text: STRING_8
+			l_class: ET_CLASS
+		do
+			if a_text = Void and attached flat_contract_views.value (a_uri) as l_contract_view then
+				Result := l_contract_view
+			else
+				l_class := a_class
+				if l_class = Void then
+					if attached pathname_from_uri (a_uri) as l_filename and then l_filename.ends_with (flat_contract_view_extension) then
+						l_filename.remove_tail (flat_contract_view_extension.count - 2)
+						if attached class_mapping.value (l_filename) as l_mapped_class then
+							l_class := l_mapped_class
+						end
+					end
+				end
+				if l_class /= Void then
+					l_text := a_text
+					if l_text = Void then
+						create l_text.make (500)
+					end
+					create l_stream.make (l_text)
+					create l_contract_viewer.make (l_stream, system_processor)
+					l_contract_viewer.set_bom_enabled (False)
+					l_contract_viewer.set_flat_enabled (True)
+					l_class.process (l_contract_viewer)
+					Result := l_contract_viewer.last_browsable_class
+					if Result /= Void then
+						if flat_contract_views.has (a_uri) then
+							flat_contract_views.replace (Result, a_uri)
+						else
+							flat_contract_views.force (Result, a_uri)
+						end
+					end
+				end
+			end
+		end
+
 	ecf_libraries: DS_HASH_TABLE [ET_ECF_INTERNAL_UNIVERSE, STRING_8]
 			-- ECF libraries indexed by ECF filenames
 
@@ -1071,14 +1939,86 @@ feature -- Eiffel system
 		end
 
 	pathname_from_uri (a_uri: LS_URI): detachable STRING_8
-			-- Eiffel class in file corresponding to `a_uri`, if any
+			-- Pathname corresponding to `a_uri`, if any
 		require
 			a_uri_not_void: a_uri /= Void
 		local
+			l_string: STRING_8
 			l_uri: UT_URI
 		do
-			create l_uri.make (a_uri.to_string.utf8_value)
+			l_string := a_uri.to_string.utf8_value
+			if l_string.starts_with ("eiffel:/") then
+				l_string := "file" + l_string.substring (7, l_string.count)
+			end
+			create l_uri.make (l_string)
 			Result := {UT_FILE_URI_ROUTINES}.uri_to_filename (l_uri)
+		end
+
+	pathname_to_uri (a_filename: STRING): LS_DOCUMENT_URI
+			-- URI corresponding to `a_filename`
+		require
+			a_filename_not_void: a_filename /= Void
+		do
+			create {LS_STRING} Result.make_from_string (pathname_to_uri_full_reference (a_filename))
+		ensure
+			pathname_to_uri_not_void: Result /= Void
+		end
+
+	pathname_to_uri_full_reference (a_filename: STRING): STRING
+			-- URI full reference corresponding to `a_filename`
+		require
+			a_filename_not_void: a_filename /= Void
+		local
+			l_uri: UT_URI
+		do
+			l_uri := {UT_FILE_URI_ROUTINES}.filename_to_uri (a_filename)
+			Result := l_uri.full_reference
+			if Result.has ('+') then
+					-- Spaces have been escaped with '+'.
+					-- They need to be escaped with '%20'.
+				Result := Result.twin
+				Result.replace_substring_all ("+", "%%20")
+			end
+		ensure
+			pathname_to_uri_full_reference_not_void: Result /= Void
+		end
+
+	contract_view_uri (a_class: ET_CLASS): detachable LS_DOCUMENT_URI
+			-- URI for the contract view of `a_class`
+		require
+			a_class_not_void: a_class /= Void
+		local
+			l_filename_with_extension: STRING
+			l_full_reference: STRING
+		do
+			if attached a_class.filename as l_filename and then l_filename.ends_with ({KL_FILE_SYSTEM}.eiffel_extension) then
+				l_filename_with_extension := l_filename.substring (1, l_filename.count - 2) + contract_view_extension
+				l_full_reference := pathname_to_uri_full_reference (l_filename_with_extension)
+				if l_full_reference.starts_with (once "file:/") then
+					l_full_reference.remove_head (4)
+					l_full_reference := once "eiffel" + l_full_reference
+					create {LS_STRING} Result.make_from_string (l_full_reference)
+				end
+			end
+		end
+
+	flat_contract_view_uri (a_class: ET_CLASS): detachable LS_DOCUMENT_URI
+			-- URI for the flat contract view of `a_class`
+		require
+			a_class_not_void: a_class /= Void
+		local
+			l_filename_with_extension: STRING
+			l_full_reference: STRING
+		do
+			if attached a_class.filename as l_filename and then l_filename.ends_with ({KL_FILE_SYSTEM}.eiffel_extension) then
+				l_filename_with_extension := l_filename.substring (1, l_filename.count - 2) + flat_contract_view_extension
+				l_full_reference := pathname_to_uri_full_reference (l_filename_with_extension)
+				if l_full_reference.starts_with (once "file:/") then
+					l_full_reference.remove_head (4)
+					l_full_reference := once "eiffel" + l_full_reference
+					create {LS_STRING} Result.make_from_string (l_full_reference)
+				end
+			end
 		end
 
 	ise_version: UT_VERSION
@@ -1116,11 +2056,14 @@ feature -- Eiffel system
 	total_compilation_count: INTEGER
 			-- Total number of compilations
 
-	max_full_compilation_count: INTEGER = 2
+	max_full_compilation_count: INTEGER = 1
 			-- Maximum number of compilations from scratch before exiting
 
-	max_total_compilation_count: INTEGER = 400
+	max_total_compilation_count: INTEGER = 500
 			-- Maximum number of compilations before exiting
+
+	restart_requested: BOOLEAN
+			-- Has restart of the server been requested?
 
 feature -- Helper
 
@@ -1130,7 +2073,7 @@ feature -- Helper
 			a_position_not_void: a_position /= Void
 			a_class_no_void: a_class /= Void
 		do
-			create Result.make ((a_position.line - 1).max (0).to_natural_32, (a_position.column - 1).max (0).to_natural_32)
+			Result := position_to_lsp (a_position)
 		ensure
 			position_not_void: Result /= Void
 		end
@@ -1164,13 +2107,310 @@ feature -- Helper
 			a_node_not_void: a_node /= Void
 			a_class_no_void: a_class /= Void
 		local
-			l_uri: UT_URI
-			l_string: LS_STRING
+			l_uri: LS_DOCUMENT_URI
 		do
 			if attached a_class.filename as l_filename then
-				l_uri := {UT_FILE_URI_ROUTINES}.filename_to_uri (l_filename)
-				create l_string.make_from_string (l_uri.full_reference)
-				create Result.make (l_string, range (a_node, a_class))
+				l_uri := pathname_to_uri (l_filename)
+				create Result.make (l_uri, range (a_node, a_class))
+			end
+		end
+
+	position_from_lsp (a_position: LS_POSITION): ET_POSITION
+			-- Convert LSP position to AST position
+		require
+			a_position_not_void: a_position /= Void
+		do
+			create {ET_COMPRESSED_POSITION} Result.make (a_position.line.value.to_integer_32 + 1, a_position.character.value.to_integer_32 + 1)
+		ensure
+			position_from_lsp_not_void: Result /= Void
+		end
+
+	position_to_lsp (a_position: ET_POSITION): LS_POSITION
+			-- Convert AST position to LSP position
+		require
+			a_position_not_void: a_position /= Void
+		do
+			create Result.make ((a_position.line - 1).max (0).to_natural_32, (a_position.column - 1).max (0).to_natural_32)
+		ensure
+			position_to_lsp_not_void: Result /= Void
+		end
+
+	range_to_lsp (a_range: ET_RANGE): LS_RANGE
+			-- Convert AST range to LSP range
+		require
+			a_range_not_void: a_range /= Void
+		local
+			l_start: LS_POSITION
+			l_end: LS_POSITION
+		do
+			create l_start.make ((a_range.start_line - 1).max (0).to_natural_32, (a_range.start_column - 1).max (0).to_natural_32)
+			create l_end.make ((a_range.end_line - 1).max (0).to_natural_32, (a_range.end_column - 1).max (0).to_natural_32)
+			create Result.make (l_start, l_end)
+		ensure
+			range_to_lsp_not_void: Result /= Void
+		end
+
+	type_hierarchy_item (a_class: ET_CLASS; a_is_conforming_inheritance: BOOLEAN): detachable LS_TYPE_HIERARCHY_ITEM
+			-- Type hierarchy item for `a_class`.
+		require
+			a_class_not_void: a_class /= Void
+		local
+			l_range: LS_RANGE
+			l_uri: LS_DOCUMENT_URI
+			l_data: LS_STRING
+		do
+			if attached a_class.filename as l_filename then
+				l_uri := pathname_to_uri (l_filename)
+				l_range := range (a_class.name, a_class)
+				create l_data.make_from_utf8 (l_filename)
+				create Result.make (class_name (a_class), {LS_SYMBOL_KINDS}.class_, Void, class_status (a_class, a_is_conforming_inheritance), l_uri, l_range, l_range, l_data)
+			end
+		end
+
+	call_hierarchy_item (a_closure: ET_STANDALONE_CLOSURE; a_class: ET_CLASS): detachable LS_CALL_HIERARCHY_ITEM
+			-- Call hierarchy item for `a_closure` from `a_class`.
+		require
+			a_closure_not_void: a_closure /= Void
+			a_class_not_void: a_class /= Void
+		local
+			l_class_impl: ET_CLASS
+			l_closure_impl: ET_STANDALONE_CLOSURE
+			l_range: LS_RANGE
+			l_uri: LS_DOCUMENT_URI
+			l_name: LS_STRING
+			l_detail: LS_STRING
+			l_class_filename: LS_STRING
+			l_seed: LS_INTEGER
+			l_data: detachable LS_OBJECT
+			l_kind: LS_SYMBOL_KIND
+		do
+			l_closure_impl := a_closure.implementation_feature
+			l_class_impl := l_closure_impl.implementation_class
+			if attached l_class_impl.filename as l_filename then
+				create l_name.make_from_utf8 (a_closure.lower_name)
+				create l_detail.make_from_utf8 ("(from " + a_class.upper_name + ")")
+				l_uri := pathname_to_uri (l_filename)
+				l_range := range (l_closure_impl.name, l_class_impl)
+				if attached {ET_FEATURE} a_closure as l_feature then
+					if l_feature.is_attribute then
+						l_kind := {LS_SYMBOL_KINDS}.field
+					else
+						l_kind := {LS_SYMBOL_KINDS}.method
+					end
+					create l_class_filename.make_from_utf8 (l_filename)
+					l_seed := a_closure.first_seed
+					create l_data.make_with_capacity (2)
+					l_data.put_value (l_class_filename, "class")
+					l_data.put_value (l_seed, "seed")
+				else
+					l_kind := {LS_SYMBOL_KINDS}.property
+				end
+				create Result.make (l_name, l_kind, Void, l_detail, l_uri, l_range, l_range, l_data)
+			end
+		end
+
+	call_hierarchy_incoming_call (a_call_name: ET_CALL_NAME; a_caller: ET_STANDALONE_CLOSURE): detachable LS_CALL_HIERARCHY_INCOMING_CALL
+			-- Call hierarchy incoming call where a given feature is called by `a_caller`.
+		require
+			a_call_name_not_void: a_call_name /= Void
+			a_caller_not_void: a_caller /= Void
+		local
+			l_ranges: LS_RANGE_LIST
+			l_range: LS_RANGE
+		do
+			if attached call_hierarchy_item (a_caller, a_caller.implementation_class) as l_item then
+				create l_ranges.make_with_capacity (2)
+				l_range := range (a_call_name, a_caller.implementation_class)
+				l_ranges.put_last (l_range)
+				create Result.make (l_item, l_ranges)
+			end
+		end
+
+	call_hierarchy_outgoing_call (a_call_name: ET_CALL_NAME; a_callee_feature: ET_FEATURE; a_callee_class, a_caller_class: ET_CLASS): detachable LS_CALL_HIERARCHY_OUTGOING_CALL
+			-- Call hierarchy outgoing call where a given feature is called by `a_caller`.
+		require
+			a_call_name_not_void: a_call_name /= Void
+			a_callee_feature_not_void: a_callee_feature /= Void
+			a_callee_class_not_void: a_callee_class /= Void
+			a_caller_class_not_void: a_caller_class /= Void
+		local
+			l_item: LS_CALL_HIERARCHY_ITEM
+			l_ranges: LS_RANGE_LIST
+			l_range: LS_RANGE
+			l_uri: LS_DOCUMENT_URI
+			l_name: LS_STRING
+			l_detail: LS_STRING
+			l_class_filename: LS_STRING
+			l_seed: LS_INTEGER
+			l_data: detachable LS_OBJECT
+			l_kind: LS_SYMBOL_KIND
+		do
+			if attached a_caller_class.filename as l_filename then
+				create l_name.make_from_utf8 (a_callee_feature.lower_name)
+				create l_detail.make_from_utf8 ("(from " + a_callee_class.upper_name + ")")
+				l_uri := pathname_to_uri (l_filename)
+				if a_callee_feature.is_attribute then
+					l_kind := {LS_SYMBOL_KINDS}.field
+				else
+					l_kind := {LS_SYMBOL_KINDS}.method
+				end
+				create l_class_filename.make_from_utf8 (l_filename)
+				l_seed := a_callee_feature.first_seed
+				create l_data.make_with_capacity (2)
+				l_data.put_value (l_class_filename, "class")
+				l_data.put_value (l_seed, "seed")
+				l_range := range (a_call_name, a_caller_class)
+				create l_item.make (l_name, l_kind, Void, l_detail, l_uri, l_range, l_range, l_data)
+				create l_ranges.make_with_capacity (2)
+				l_ranges.put_last (l_range)
+				create Result.make (l_item, l_ranges)
+			end
+		end
+
+	client_supplier_hierarchy_item (a_class: ET_CLASS): detachable LS_CALL_HIERARCHY_ITEM
+			-- CLient/supplier hierarchy item for `a_class`.
+		require
+			a_class_not_void: a_class /= Void
+		local
+			l_range: LS_RANGE
+			l_uri: LS_DOCUMENT_URI
+			l_data: LS_STRING
+		do
+			if attached a_class.filename as l_filename then
+				l_uri := pathname_to_uri (l_filename)
+				l_range := range (a_class.name, a_class)
+				create l_data.make_from_utf8 (l_filename)
+				create Result.make (class_name (a_class), {LS_SYMBOL_KINDS}.class_, Void, class_status (a_class, True), l_uri, l_range, l_range, l_data)
+			end
+		end
+
+	client_hierarchy_item (a_client: ET_CLASS): detachable LS_CALL_HIERARCHY_INCOMING_CALL
+			-- CLient hierarchy item for `a_client`.
+		require
+			a_client_not_void: a_client /= Void
+		local
+			l_ranges: LS_RANGE_LIST
+		do
+			if attached client_supplier_hierarchy_item (a_client) as l_item then
+				create l_ranges.make_with_capacity (1)
+				l_ranges.put_last (l_item.range)
+				create Result.make (l_item, l_ranges)
+			end
+		end
+
+	supplier_hierarchy_item (a_supplier: ET_CLASS): detachable LS_CALL_HIERARCHY_OUTGOING_CALL
+			-- Supplier hierarchy item for `a_supplier`.
+		require
+			a_supplier_not_void: a_supplier /= Void
+		local
+			l_ranges: LS_RANGE_LIST
+		do
+			if attached client_supplier_hierarchy_item (a_supplier) as l_item then
+				create l_ranges.make_with_capacity (1)
+				l_ranges.put_last (l_item.range)
+				create Result.make (l_item, l_ranges)
+			end
+		end
+
+	class_name (a_class: ET_CLASS): LS_STRING
+			-- Name of `a_class`, with its formal parameters if any
+		require
+			a_class_not_void: a_class /= Void
+		local
+			l_string: STRING_8
+			l_printer: ET_AST_PRETTY_PRINTER
+			l_stream: KL_STRING_OUTPUT_STREAM
+			i, nb: INTEGER
+			l_formal_parameter: ET_FORMAL_PARAMETER
+		do
+			create l_string.make (50)
+			l_string.append_string (a_class.upper_name)
+			if attached a_class.formal_parameters as l_formal_parameters and then l_formal_parameters.count > 0 then
+				l_string.append_character (' ')
+				l_string.append_character ('[')
+				nb := l_formal_parameters.count
+				from i := 1 until i > nb loop
+					if i /= 1 then
+						l_string.append_character (',')
+						l_string.append_character (' ')
+					end
+					l_formal_parameter := l_formal_parameters.formal_parameter (i)
+					l_string.append_string (l_formal_parameter.upper_name)
+					if attached l_formal_parameter.constraint as l_constraint then
+						l_string.append_character (' ')
+						l_string.append_string (tokens.arrow_symbol.text)
+						l_string.append_character (' ')
+						if l_printer = Void then
+							create l_stream.make (l_string)
+							create l_printer.make (l_stream)
+						end
+						l_constraint.process (l_printer)
+						if attached l_formal_parameter.creation_procedures as l_creation_procedures then
+							l_string.append_character (' ')
+							l_creation_procedures.process (l_printer)
+						end
+					end
+					i := i + 1
+				end
+				l_string.append_character (']')
+			end
+			create Result.make_from_utf8 (l_string)
+		ensure
+			class_name_not_void: Result /= Void
+		end
+
+	class_status (a_class: ET_CLASS; a_is_conforming_inheritance: BOOLEAN): detachable LS_STRING
+			-- Status of `a_class` (deferred, expanded, separate, frozen, non-conforming)
+		require
+			a_class_not_void: a_class /= Void
+		local
+			l_string: STRING_8
+		do
+			if a_class.is_deferred then
+				l_string := "deferred"
+			end
+			if a_class.is_frozen then
+				if l_string = Void then
+					create l_string.make (20)
+				end
+				if not l_string.is_empty then
+					l_string.append_string (", ")
+				end
+				if a_class.is_once then
+					l_string.append_string ("once")
+				else
+					l_string.append_string ("frozen")
+				end
+			end
+			if a_class.is_expanded then
+				if l_string = Void then
+					create l_string.make (20)
+				end
+				if not l_string.is_empty then
+					l_string.append_string (", ")
+				end
+				l_string.append_string ("expanded")
+			end
+			if a_class.is_separate then
+				if l_string = Void then
+					create l_string.make (20)
+				end
+				if not l_string.is_empty then
+					l_string.append_string (", ")
+				end
+				l_string.append_string ("separate")
+			end
+			if not a_is_conforming_inheritance then
+				if l_string = Void then
+					create l_string.make (20)
+				end
+				if not l_string.is_empty then
+					l_string.append_string (", ")
+				end
+				l_string.append_string ("non-conforming")
+			end
+			if l_string /= Void then
+				create Result.make_from_utf8 ("(" + l_string + ")")
 			end
 		end
 
@@ -1298,7 +2538,7 @@ feature -- Argument parsing
 			a_option_not_void: a_option /= Void
 			a_parser_not_void: a_parser /= Void
 		do
-			override_variables :=  variables_from_cli_value (a_option.parameters, True, False)
+			override_variables := variables_from_cli_value (a_option.parameters, True, False)
 		end
 
 	set_system_processor
@@ -1318,6 +2558,7 @@ feature -- Argument parsing
 			system_processor.set_cluster_dependence_enabled (False)
 			system_processor.set_flat_mode (False)
 			system_processor.set_flat_dbc_mode (False)
+			system_processor.set_fault_tolerant (True)
 			configure_error_handler
 			configure_ast_factory
 		end
@@ -1378,6 +2619,26 @@ feature -- Error handling
 			report_error (l_error)
 		end
 
+feature {NONE} -- Constants
+
+	busy_notification_method: STRING_8 = "$/goboEiffel/busy"
+		-- Notification method name '$/goboEiffel/busy'
+
+	not_busy_notification_method: STRING_8 = "$/goboEiffel/notBusy"
+		-- Notification method name '$/goboEiffel/notBusy'
+
+	restart_notification_method: STRING_8 = "$/goboEiffel/restart"
+		-- Notification method name '$/goboEiffel/restart'
+
+	format_view_update_notification_method: STRING_8 = "$/goboEiffel/formatViewUpdate"
+		-- Notification method name '$/goboEiffel/formatViewUpdate'
+
+	contract_view_extension: STRING_8 = ".e - Contract View"
+			-- Virtual filename extension for contract views
+
+	flat_contract_view_extension: STRING_8 = ".e - Flat Contract View"
+			-- Virtual filename extension for flat contract views
+
 invariant
 
 	system_processor_not_void: system_processor /= Void
@@ -1387,6 +2648,12 @@ invariant
 	edited_classes_not_void: edited_classes /= Void
 	no_void_edited_class: not edited_classes.has_void_item
 	no_void_edited_class_filename: not edited_classes.has_void
+	contract_views_not_void: contract_views /= Void
+	no_void_contract_view: not contract_views.has_void_item
+	no_void_contract_view_filename: not contract_views.has_void
+	flat_contract_views_not_void: flat_contract_views /= Void
+	no_void_flat_contract_view: not flat_contract_views.has_void_item
+	no_void_flat_contract_view_filename: not flat_contract_views.has_void
 	ecf_libraries_not_void: ecf_libraries /= Void
 	no_void_ecf_library: not ecf_libraries.has_void_item
 	no_void_ecf_library_filename: not ecf_libraries.has_void

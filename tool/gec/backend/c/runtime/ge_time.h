@@ -4,7 +4,7 @@
 		"C functions used to implement class C_DATE"
 
 	system: "Gobo Eiffel Compiler"
-	copyright: "Copyright (c) 2006-2017, Eric Bezault and others"
+	copyright: "Copyright (c) 2006-2026, Eric Bezault and others"
 	license: "MIT License"
 */
 
@@ -14,12 +14,8 @@
 #pragma once
 #endif
 
-#if defined _XOPEN_UNIX || defined __USE_XOPEN || defined __USE_BSD
-#define HAS_GETTIMEOFDAY
-#else
-#ifndef WIN32
-#define HAS_GETTIMEOFDAY
-#endif
+#ifndef EIF_CONFIG_H
+#include "eif_config.h"
 #endif
 
 #ifdef HAS_GETTIMEOFDAY
@@ -35,7 +31,9 @@
 #define GE_timebtime(p) ((struct timeval*)(p))->tv_sec
 #else
 #include <sys/timeb.h>
+#ifdef __LCC__
 extern void ftime(struct timeb *); /* Needed for lcc-win32 */
+#endif
 #define GE_ftime(p) ftime((struct timeb*)(p))
 #define GE_timebsz sizeof(struct timeb)
 #define GE_timebmillitm(p) ((struct timeb*)(p))->millitm

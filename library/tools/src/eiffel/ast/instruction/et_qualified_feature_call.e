@@ -5,7 +5,7 @@
 		"Eiffel qualified feature calls"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2014-2024, Eric Bezault and others"
+	copyright: "Copyright (c) 2014-2026, Eric Bezault and others"
 	license: "MIT License"
 
 deferred class ET_QUALIFIED_FEATURE_CALL
@@ -20,7 +20,8 @@ inherit
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		end
 
 	ET_SEPARATE_CALL
@@ -30,7 +31,8 @@ inherit
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		redefine
 			target
 		end
@@ -81,15 +83,29 @@ feature -- Status report
 				attached arguments as l_arguments and then l_arguments.has_typed_object_test
 		end
 
+feature -- Formal arguments
+
+	add_formal_arguments (a_list: DS_ARRAYED_LIST_2 [detachable ET_IDENTIFIER, BOOLEAN])
+			-- Add to `a_list' all formal arguments appearing in current call
+			-- and (recursively) in its subexpressions: set the boolean to true
+			-- if the formal argument name at the index corresponding to its seed
+			-- is not Void.
+		do
+			target.add_formal_arguments (a_list)
+			if attached arguments as l_arguments then
+				l_arguments.add_formal_arguments (a_list)
+			end
+		end
+
 feature -- Assertions
 
-	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION])
+	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION]; a_context: ET_TYPE_CONTEXT)
 			-- Add to `a_list' all old expressions appearing in current call
-			-- and (recursively) in its subexpressions.
+			-- and (recursively) in its subexpressions when viewed from `a_context'.
 		do
-			target.add_old_expressions (a_list)
+			target.add_old_expressions (a_list, a_context)
 			if attached arguments as l_arguments then
-				l_arguments.add_old_expressions (a_list)
+				l_arguments.add_old_expressions (a_list, a_context)
 			end
 		end
 
