@@ -5,7 +5,7 @@
 		"Browsable names of classes"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_BROWSABLE_CLASS_NAME
@@ -14,9 +14,7 @@ inherit
 
 	ET_BROWSABLE_NAMED_TYPE
 		redefine
-			append_description_to_string,
-			definition_ast_node,
-			type_definition_ast_node
+			append_description_to_string
 		end
 
 create
@@ -49,6 +47,14 @@ feature -- Access
 	actual_class: ET_CLASS
 			-- Class corresponding to `name'
 
+	type_base_class: ET_CLASS
+			-- Base class of the type of the browsable name, if any
+		do
+			Result := actual_class
+		ensure then
+			type_base_class_not_void: Result /= Void
+		end
+
 feature -- Output
 
 	append_description_to_string (a_string: STRING_8)
@@ -59,22 +65,12 @@ feature -- Output
 			end
 		end
 
-	definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the current browsable name is defined
-		do
-			if not actual_class.is_unknown then
-				Result := [actual_class.name, actual_class]
-			end
-		end
+feature -- Processing
 
-	type_definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the type of the current browsable name is defined
+	process (a_processor: ET_BROWSABLE_NAME_PROCESSOR)
+			-- Process current name.
 		do
-			if not actual_class.is_unknown then
-				Result := [actual_class.name, actual_class]
-			end
+			a_processor.process_class_name (Current)
 		end
 
 invariant

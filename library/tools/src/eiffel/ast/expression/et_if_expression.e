@@ -5,7 +5,7 @@
 		"Eiffel 'if' expressions"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2017-2024, Eric Bezault and others"
+	copyright: "Copyright (c) 2017-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_IF_EXPRESSION
@@ -21,6 +21,7 @@ inherit
 			has_agent,
 			has_typed_object_test,
 			add_old_expressions,
+			add_formal_arguments,
 			add_separate_arguments
 		end
 
@@ -204,18 +205,34 @@ feature -- Setting
 			end_keyword_set: end_keyword = an_end
 		end
 
+feature -- Formal arguments
+
+	add_formal_arguments (a_list: DS_ARRAYED_LIST_2 [detachable ET_IDENTIFIER, BOOLEAN])
+			-- Add to `a_list' all formal arguments appearing in current expression
+			-- and (recursively) in its subexpressions: set the boolean to true
+			-- if the formal argument name at the index corresponding to its seed
+			-- is not Void.
+		do
+			conditional_expression.add_formal_arguments (a_list)
+			then_expression.add_formal_arguments (a_list)
+			if attached elseif_parts as l_elseif_parts then
+				l_elseif_parts.add_formal_arguments (a_list)
+			end
+			else_expression.add_formal_arguments (a_list)
+		end
+
 feature -- Assertions
 
-	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION])
+	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION]; a_context: ET_TYPE_CONTEXT)
 			-- Add to `a_list' all old expressions appearing in current expression
-			-- and (recursively) in its subexpressions.
+			-- and (recursively) in its subexpressions when viewed from `a_context'.
 		do
-			conditional_expression.add_old_expressions (a_list)
-			then_expression.add_old_expressions (a_list)
+			conditional_expression.add_old_expressions (a_list, a_context)
+			then_expression.add_old_expressions (a_list, a_context)
 			if attached elseif_parts as l_elseif_parts then
-				l_elseif_parts.add_old_expressions (a_list)
+				l_elseif_parts.add_old_expressions (a_list, a_context)
 			end
-			else_expression.add_old_expressions (a_list)
+			else_expression.add_old_expressions (a_list, a_context)
 		end
 
 feature -- SCOOP

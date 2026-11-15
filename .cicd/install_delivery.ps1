@@ -8,9 +8,12 @@
 .PARAMETER CiTool
 	CI tool (azure, github, gitlab).
 
+.PARAMETER CCompiler
+	C Compiler (zig, gcc, clang, msc).
+
 .EXAMPLE
 	# Install Gobo Eiffel delivery from the GitHub Actions pipeline:
-	install_delivery.ps1 github
+	install_delivery.ps1 github zig
 
 .NOTES
 	Copyright: "Copyright (c) 2024, Eric Bezault and others"
@@ -21,18 +24,21 @@ param
 (
 	[Parameter(Mandatory=$true)]
 	[ValidateSet("azure", "github", "gitlab")] 
-	[string] $CiTool
+	[string] $CiTool,
+	[Parameter(Mandatory=$true)]
+	[ValidateSet("zig", "gcc", "clang", "msc")] 
+	[string] $CCompiler
 )
 
 $ErrorActionPreference = "Stop"
 
-. "$PSScriptRoot/before_script.ps1" $CiTool zig
+. "$PSScriptRoot/before_script.ps1" $CiTool $CCompiler
 if ($LastExitCode -ne 0) {
-	Write-Error "Command 'before_script.ps1 $CiTool zig' exited with code $LastExitCode"
+	Write-Error "Command 'before_script.ps1 $CiTool $CCompiler' exited with code $LastExitCode"
 	exit $LastExitCode
 }
 
-$GOBO_CI_GE_ARCHIVE_FILENAME =  Get-ChildItem "gobo-*" -Name 
+$GOBO_CI_GE_ARCHIVE_FILENAME = Get-ChildItem "gobo-*" -Name 
 
 if ($GOBO_CI_OS -eq "windows") {
 	7z x "$env:GOBO/$GOBO_CI_GE_ARCHIVE_FILENAME" -o"$env:GOBO"
@@ -52,6 +58,7 @@ Move-Item -Path "$env:GOBO/gobo/library" -Destination "$env:GOBO"
 Remove-Item "$env:GOBO/tool" -Recurse -Force
 Move-Item -Path "$env:GOBO/gobo/tool" -Destination "$env:GOBO"
 Remove-Item "$env:GOBO/gobo" -Recurse -Force
+"$CCompiler" | Out-File "$env:GOBO/tool/gec/backend/c/config/default.cfg"
 
 gec --version --verbose
 if ($LastExitCode -ne 0) {

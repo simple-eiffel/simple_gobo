@@ -5,7 +5,7 @@
 		"Eiffel expressions"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 1999-2024, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2026, Eric Bezault and others"
 	license: "MIT License"
 
 deferred class ET_EXPRESSION
@@ -41,7 +41,8 @@ inherit
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		end
 
 	ET_ARGUMENT_OPERAND
@@ -50,7 +51,8 @@ inherit
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		end
 
 	ET_AGENT_ARGUMENT_OPERAND
@@ -61,7 +63,8 @@ inherit
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		end
 
 	ET_TARGET_OPERAND
@@ -72,7 +75,8 @@ inherit
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		end
 
 	ET_AGENT_TARGET
@@ -83,7 +87,8 @@ inherit
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		end
 
 feature -- Access
@@ -130,6 +135,30 @@ feature -- Status report
 			-- Is current expression the 'True' entity (possibly parenthesized)?
 		do
 			-- Result := False
+		end
+
+	is_false_expression (a_context: ET_TYPE_CONTEXT; a_no_call: BOOLEAN): BOOLEAN
+			-- Can current expression be proven to be False statically when viewed from `a_context'?
+			-- If `a_no_call` is True, then return False if some calls could be executed
+			-- even if current expression can be proven to be False statically.
+		require
+			a_context_not_void: a_context /= Void
+			a_context_valid: a_context.is_valid_context
+			-- no_cycle: no cycle in anchored types involved.
+		do
+			Result := is_false
+		end
+
+	is_true_expression (a_context: ET_TYPE_CONTEXT; a_no_call: BOOLEAN): BOOLEAN
+			-- Can current expression be proven to be True statically when viewed from `a_context'?
+			-- If `a_no_call` is True, then return False if some calls could be executed
+			-- even if current expression can be proven to be True statically.
+		require
+			a_context_not_void: a_context /= Void
+			a_context_valid: a_context.is_valid_context
+			-- no_cycle: no cycle in anchored types involved.
+		do
+			Result := is_true
 		end
 
 	is_prefix_expression: BOOLEAN
@@ -189,11 +218,21 @@ feature -- Type conversion
 			-- Result := Void
 		end
 
+feature -- Formal arguments
+
+	add_formal_arguments (a_list: DS_ARRAYED_LIST_2 [detachable ET_IDENTIFIER, BOOLEAN])
+			-- Add to `a_list' all formal arguments appearing in current expression
+			-- and (recursively) in its subexpressions: set the boolean to true
+			-- if the formal argument name at the index corresponding to its seed
+			-- is not Void.
+		do
+		end
+
 feature -- Assertions
 
-	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION])
+	add_old_expressions (a_list: DS_ARRAYED_LIST [ET_OLD_EXPRESSION]; a_context: ET_TYPE_CONTEXT)
 			-- Add to `a_list' all old expressions appearing in current expression
-			-- and (recursively) in its subexpressions.
+			-- and (recursively) in its subexpressions when viewed from `a_context'.
 		do
 		end
 

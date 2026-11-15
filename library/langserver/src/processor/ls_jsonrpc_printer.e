@@ -5,7 +5,7 @@
 		"LSP JSON-RPC version 2.0 printer"
 
 	library: "Gobo Eiffel Language Server Protocol Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class LS_JSONRPC_PRINTER
@@ -111,6 +111,267 @@ feature {LS_ANY} -- Processing
 			else
 				utf8_string.append_string ({LS_BOOLEAN}.false_value)
 			end
+		end
+
+	process_call_hierarchy_capabilities (a_value: LS_CALL_HIERARCHY_CAPABILITIES)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_dynamic_registration_capabilities (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_incoming_call (a_value: LS_CALL_HIERARCHY_INCOMING_CALL)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_INCOMING_CALL}.from_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.from_.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_INCOMING_CALL}.from_ranges_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.from_ranges.process (Current)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_incoming_call_list (a_value: LS_CALL_HIERARCHY_INCOMING_CALL_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
+	process_call_hierarchy_incoming_calls_params (a_value: LS_CALL_HIERARCHY_INCOMING_CALLS_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_INCOMING_CALLS_PARAMS}.item_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.item.process (Current)
+			process_work_done_progress_params (a_value)
+			process_partial_result_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_incoming_calls_request (a_value: LS_CALL_HIERARCHY_INCOMING_CALLS_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_INCOMING_CALLS_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_INCOMING_CALLS_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_INCOMING_CALLS_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_call_hierarchy_incoming_calls_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_item (a_value: LS_CALL_HIERARCHY_ITEM)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.name_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.name.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.kind_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.kind.process (Current)
+			if attached a_value.tags as l_tags then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.tags_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_tags.process (Current)
+			end
+			if attached a_value.detail as l_detail then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.detail_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_detail.process (Current)
+			end
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.uri_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.uri.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.range_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.range.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.selection_range_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.selection_range.process (Current)
+			if attached a_value.data as l_data then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_CALL_HIERARCHY_ITEM}.data_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_data.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_item_list (a_value: LS_CALL_HIERARCHY_ITEM_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
+	process_call_hierarchy_options (a_value: LS_CALL_HIERARCHY_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_work_done_progress_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_outgoing_call (a_value: LS_CALL_HIERARCHY_OUTGOING_CALL)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_OUTGOING_CALL}.to_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.to.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_OUTGOING_CALL}.from_ranges_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.from_ranges.process (Current)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_outgoing_call_list (a_value: LS_CALL_HIERARCHY_OUTGOING_CALL_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
+	process_call_hierarchy_outgoing_calls_params (a_value: LS_CALL_HIERARCHY_OUTGOING_CALLS_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_OUTGOING_CALLS_PARAMS}.item_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.item.process (Current)
+			process_work_done_progress_params (a_value)
+			process_partial_result_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_outgoing_calls_request (a_value: LS_CALL_HIERARCHY_OUTGOING_CALLS_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_OUTGOING_CALLS_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_OUTGOING_CALLS_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_OUTGOING_CALLS_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_call_hierarchy_outgoing_calls_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_prepare_params (a_value: LS_CALL_HIERARCHY_PREPARE_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			process_text_document_location_params (a_value)
+			process_work_done_progress_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_prepare_request (a_value: LS_CALL_HIERARCHY_PREPARE_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_PREPARE_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_PREPARE_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CALL_HIERARCHY_PREPARE_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_call_hierarchy_prepare_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_call_hierarchy_registration_options (a_value: LS_CALL_HIERARCHY_REGISTRATION_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_text_document_registration_options (a_value)
+			process_work_done_progress_options (a_value)
+			process_static_registration_options (a_value)
+			utf8_string.append_character ('}')
 		end
 
 	process_cancel_params (a_value: LS_CANCEL_PARAMS)
@@ -670,18 +931,6 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
-	process_completion_item_resolve_capabilities (a_value: LS_COMPLETION_ITEM_RESOLVE_CAPABILITIES)
-			-- Process `a_value`.
-		do
-			utf8_string.append_character ('{')
-			utf8_string.append_character ('"')
-			utf8_string.append_string ({LS_COMPLETION_ITEM_RESOLVE_CAPABILITIES}.properties_name)
-			utf8_string.append_character ('"')
-			utf8_string.append_character (':')
-			a_value.properties.process (Current)
-			utf8_string.append_character ('}')
-		end
-
 	process_completion_item_resolve_request (a_value: LS_COMPLETION_ITEM_RESOLVE_REQUEST)
 			-- Process `a_value`.
 		do
@@ -807,6 +1056,8 @@ feature {LS_ANY} -- Processing
 
 	process_completion_params (a_value: LS_COMPLETION_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			if attached a_value.context as l_context then
@@ -918,6 +1169,8 @@ feature {LS_ANY} -- Processing
 
 	process_configuration_params (a_value: LS_CONFIGURATION_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			utf8_string.append_character ('"')
@@ -954,6 +1207,83 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
+	process_custom_field (a_field_name: STRING_8; a_value: LS_ANY)
+			-- Process custom field name `a_field_name` with value `a_value`.
+		do
+			process_comma_if_not_first
+			utf8_string.append_character ('"')
+			utf8_string.append_string (a_field_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.process (Current)
+		end
+
+	process_custom_notification (a_value: LS_CUSTOM_NOTIFICATION)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CUSTOM_NOTIFICATION}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			if attached a_value.params as l_params then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_CUSTOM_NOTIFICATION}.params_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_params.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_custom_params (a_value: LS_CUSTOM_PARAMS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			a_value.process_custom_fields (Current)
+			utf8_string.append_character ('}')
+		end
+
+	process_custom_request (a_value: LS_CUSTOM_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CUSTOM_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_CUSTOM_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			if attached a_value.params as l_params then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_CUSTOM_REQUEST}.params_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_params.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_custom_result (a_value: LS_CUSTOM_RESULT)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			a_value.process_custom_fields (Current)
+			utf8_string.append_character ('}')
+		end
+
 	process_declaration_capabilities (a_value: LS_DECLARATION_CAPABILITIES)
 			-- Process `a_value`.
 		do
@@ -980,6 +1310,8 @@ feature {LS_ANY} -- Processing
 
 	process_declaration_params (a_value: LS_DECLARATION_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			process_text_document_location_params (a_value)
@@ -994,14 +1326,7 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('{')
 			process_text_document_registration_options (a_value)
 			process_work_done_progress_options (a_value)
-			if attached a_value.id as l_id then
-				process_comma_if_not_first
-				utf8_string.append_character ('"')
-				utf8_string.append_string ({LS_DECLARATION_REGISTRATION_OPTIONS}.id_name)
-				utf8_string.append_character ('"')
-				utf8_string.append_character (':')
-				l_id.process (Current)
-			end
+			process_static_registration_options (a_value)
 			utf8_string.append_character ('}')
 		end
 
@@ -1221,6 +1546,48 @@ feature {LS_ANY} -- Processing
 				utf8_string.append_character (':')
 				l_value_set.process (Current)
 			end
+			utf8_string.append_character ('}')
+		end
+
+	process_did_change_configuration_capabilities (a_value: LS_DID_CHANGE_CONFIGURATION_CAPABILITIES)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_dynamic_registration_capabilities (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_did_change_configuration_notification (a_value: LS_DID_CHANGE_CONFIGURATION_NOTIFICATION)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_DID_CHANGE_CONFIGURATION_NOTIFICATION}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_DID_CHANGE_CONFIGURATION_NOTIFICATION}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_did_change_configuration_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_did_change_configuration_params (a_value: LS_DID_CHANGE_CONFIGURATION_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_DID_CHANGE_CONFIGURATION_PARAMS}.settings_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.settings.process (Current)
 			utf8_string.append_character ('}')
 		end
 
@@ -1564,6 +1931,95 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
+	process_document_highlight (a_value: LS_DOCUMENT_HIGHLIGHT)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_DOCUMENT_HIGHLIGHT}.range_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.range.process (Current)
+			if attached a_value.kind as l_kind then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_DOCUMENT_HIGHLIGHT}.kind_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_kind.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_document_highlight_capabilities (a_value: LS_DOCUMENT_HIGHLIGHT_CAPABILITIES)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_dynamic_registration_capabilities (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_document_highlight_list (a_value: LS_DOCUMENT_HIGHLIGHT_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
+	process_document_highlight_options (a_value: LS_DOCUMENT_HIGHLIGHT_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_work_done_progress_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_document_highlight_params (a_value: LS_DOCUMENT_HIGHLIGHT_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			process_text_document_location_params (a_value)
+			process_work_done_progress_params (a_value)
+			process_partial_result_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_document_highlight_registration_options (a_value: LS_DOCUMENT_HIGHLIGHT_REGISTRATION_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_text_document_registration_options (a_value)
+			process_work_done_progress_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_document_highlight_request (a_value: LS_DOCUMENT_HIGHLIGHT_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_DOCUMENT_HIGHLIGHT_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_DOCUMENT_HIGHLIGHT_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_DOCUMENT_HIGHLIGHT_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_document_highlight_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
 	process_document_selector (a_value: LS_DOCUMENT_SELECTOR)
 			-- Process `a_value`.
 		do
@@ -1695,6 +2151,8 @@ feature {LS_ANY} -- Processing
 
 	process_document_symbol_params (a_value: LS_DOCUMENT_SYMBOL_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			utf8_string.append_character ('"')
@@ -1844,6 +2302,18 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
+	process_hover (a_value: LS_HOVER)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_HOVER}.contents_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.contents.process (Current)
+			utf8_string.append_character ('}')
+		end
+
 	process_hover_capabilities (a_value: LS_HOVER_CAPABILITIES)
 			-- Process `a_value`.
 		do
@@ -1870,6 +2340,8 @@ feature {LS_ANY} -- Processing
 
 	process_hover_params (a_value: LS_HOVER_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			process_text_document_location_params (a_value)
@@ -1912,18 +2384,6 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
-	process_hover_result (a_value: LS_HOVER_RESULT)
-			-- Process `a_value`.
-		do
-			utf8_string.append_character ('{')
-			utf8_string.append_character ('"')
-			utf8_string.append_string ({LS_HOVER_RESULT}.contents_name)
-			utf8_string.append_character ('"')
-			utf8_string.append_character (':')
-			a_value.contents.process (Current)
-			utf8_string.append_character ('}')
-		end
-
 	process_implementation_capabilities (a_value: LS_IMPLEMENTATION_CAPABILITIES)
 			-- Process `a_value`.
 		do
@@ -1950,6 +2410,8 @@ feature {LS_ANY} -- Processing
 
 	process_implementation_params (a_value: LS_IMPLEMENTATION_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			process_text_document_location_params (a_value)
@@ -1964,14 +2426,7 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('{')
 			process_text_document_registration_options (a_value)
 			process_work_done_progress_options (a_value)
-			if attached a_value.id as l_id then
-				process_comma_if_not_first
-				utf8_string.append_character ('"')
-				utf8_string.append_string ({LS_IMPLEMENTATION_REGISTRATION_OPTIONS}.id_name)
-				utf8_string.append_character ('"')
-				utf8_string.append_character (':')
-				l_id.process (Current)
-			end
+			process_static_registration_options (a_value)
 			utf8_string.append_character ('}')
 		end
 
@@ -2439,6 +2894,26 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
+	process_optional_range_location (a_value: LS_OPTIONAL_RANGE_LOCATION)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_OPTIONAL_RANGE_LOCATION}.uri_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.uri.process (Current)
+			if attached a_value.range as l_range then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_OPTIONAL_RANGE_LOCATION}.range_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_range.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
 	process_optional_versioned_text_document_identifier (a_value: LS_OPTIONAL_VERSIONED_TEXT_DOCUMENT_IDENTIFIER)
 			-- Process `a_value`.
 		do
@@ -2490,6 +2965,12 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
+	process_position_list (a_value: LS_POSITION_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
 	process_progress_notification (a_value: LS_PROGRESS_NOTIFICATION)
 			-- Process `a_value`.
 		do
@@ -2512,6 +2993,8 @@ feature {LS_ANY} -- Processing
 
 	process_progress_params (a_value: LS_PROGRESS_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			utf8_string.append_character ('"')
@@ -2640,6 +3123,12 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('}')
 		end
 
+	process_range_list (a_value: LS_RANGE_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
 	process_register_capability_request (a_value: LS_REGISTER_CAPABILITY_REQUEST)
 			-- Process `a_value`.
 		do
@@ -2700,6 +3189,8 @@ feature {LS_ANY} -- Processing
 
 	process_registration_params (a_value: LS_REGISTRATION_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			utf8_string.append_character ('"')
@@ -2725,6 +3216,18 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('"')
 			utf8_string.append_character (':')
 			a_value.pattern.process (Current)
+			utf8_string.append_character ('}')
+		end
+
+	process_resolve_capabilities (a_value: LS_RESOLVE_CAPABILITIES)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_RESOLVE_CAPABILITIES}.properties_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.properties.process (Current)
 			utf8_string.append_character ('}')
 		end
 
@@ -2780,6 +3283,106 @@ feature {LS_ANY} -- Processing
 				utf8_string.append_character (':')
 				l_data.process (Current)
 			end
+			utf8_string.append_character ('}')
+		end
+
+	process_selection_range (a_value: LS_SELECTION_RANGE)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_SELECTION_RANGE}.range_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.range.process (Current)
+			if attached a_value.parent as l_parent then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_SELECTION_RANGE}.parent_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_parent.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_selection_range_capabilities (a_value: LS_SELECTION_RANGE_CAPABILITIES)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_dynamic_registration_capabilities (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_selection_range_list (a_value: LS_SELECTION_RANGE_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
+	process_selection_range_options (a_value: LS_SELECTION_RANGE_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_work_done_progress_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_selection_range_params (a_value: LS_SELECTION_RANGE_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_SELECTION_RANGE_PARAMS}.text_document_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.text_document.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_SELECTION_RANGE_PARAMS}.positions_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.positions.process (Current)
+			process_work_done_progress_params (a_value)
+			process_partial_result_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_selection_range_registration_options (a_value: LS_SELECTION_RANGE_REGISTRATION_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_text_document_registration_options (a_value)
+			process_work_done_progress_options (a_value)
+			process_static_registration_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_selection_range_request (a_value: LS_SELECTION_RANGE_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_SELECTION_RANGE_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_SELECTION_RANGE_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_SELECTION_RANGE_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_selection_range_params (a_value)
 			utf8_string.append_character ('}')
 		end
 
@@ -2842,6 +3445,14 @@ feature {LS_ANY} -- Processing
 				utf8_string.append_character (':')
 				l_implementation_provider.process (Current)
 			end
+			if attached a_value.document_highlight_provider as l_document_highlight_provider then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_SERVER_CAPABILITIES}.document_highlight_provider_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_document_highlight_provider.process (Current)
+			end
 			if attached a_value.document_symbol_provider as l_document_symbol_provider then
 				process_comma_if_not_first
 				utf8_string.append_character ('"')
@@ -2849,6 +3460,38 @@ feature {LS_ANY} -- Processing
 				utf8_string.append_character ('"')
 				utf8_string.append_character (':')
 				l_document_symbol_provider.process (Current)
+			end
+			if attached a_value.selection_range_provider as l_selection_range_provider then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_SERVER_CAPABILITIES}.selection_range_provider_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_selection_range_provider.process (Current)
+			end
+			if attached a_value.call_hierarchy_provider as l_call_hierarchy_provider then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_SERVER_CAPABILITIES}.call_hierarchy_provider_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_call_hierarchy_provider.process (Current)
+			end
+			if attached a_value.type_hierarchy_provider as l_type_hierarchy_provider then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_SERVER_CAPABILITIES}.type_hierarchy_provider_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_type_hierarchy_provider.process (Current)
+			end
+			if attached a_value.workspace_symbol_provider as l_workspace_symbol_provider then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_SERVER_CAPABILITIES}.workspace_symbol_provider_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_workspace_symbol_provider.process (Current)
 			end
 			utf8_string.append_character ('}')
 		end
@@ -2905,6 +3548,21 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character (':')
 			a_value.method.process (Current)
 			utf8_string.append_character ('}')
+		end
+
+	process_static_registration_options (a_value: LS_STATIC_REGISTRATION_OPTIONS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			if attached a_value.id as l_id then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_STATIC_REGISTRATION_OPTIONS}.id_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_id.process (Current)
+			end
 		end
 
 	process_string (a_value: LS_STRING)
@@ -3072,6 +3730,14 @@ feature {LS_ANY} -- Processing
 				utf8_string.append_character (':')
 				l_implementation.process (Current)
 			end
+			if attached a_value.document_highlight as l_document_highlight then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_TEXT_DOCUMENT_CAPABILITIES}.document_highlight_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_document_highlight.process (Current)
+			end
 			if attached a_value.document_symbol as l_document_symbol then
 				process_comma_if_not_first
 				utf8_string.append_character ('"')
@@ -3087,6 +3753,30 @@ feature {LS_ANY} -- Processing
 				utf8_string.append_character ('"')
 				utf8_string.append_character (':')
 				l_publish_diagnostics.process (Current)
+			end
+			if attached a_value.selection_range as l_selection_range then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_TEXT_DOCUMENT_CAPABILITIES}.selection_range_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_selection_range.process (Current)
+			end
+			if attached a_value.call_hierarchy as l_call_hierarchy then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_TEXT_DOCUMENT_CAPABILITIES}.call_hierarchy_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_call_hierarchy.process (Current)
+			end
+			if attached a_value.type_hierarchy as l_type_hierarchy then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_TEXT_DOCUMENT_CAPABILITIES}.type_hierarchy_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_type_hierarchy.process (Current)
 			end
 			utf8_string.append_character ('}')
 		end
@@ -3355,6 +4045,8 @@ feature {LS_ANY} -- Processing
 
 	process_type_definition_params (a_value: LS_TYPE_DEFINITION_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			process_text_document_location_params (a_value)
@@ -3369,14 +4061,7 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('{')
 			process_text_document_registration_options (a_value)
 			process_work_done_progress_options (a_value)
-			if attached a_value.id as l_id then
-				process_comma_if_not_first
-				utf8_string.append_character ('"')
-				utf8_string.append_string ({LS_TYPE_DEFINITION_REGISTRATION_OPTIONS}.id_name)
-				utf8_string.append_character ('"')
-				utf8_string.append_character (':')
-				l_id.process (Current)
-			end
+			process_static_registration_options (a_value)
 			utf8_string.append_character ('}')
 		end
 
@@ -3403,6 +4088,219 @@ feature {LS_ANY} -- Processing
 			utf8_string.append_character ('"')
 			utf8_string.append_character (':')
 			process_type_definition_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_capabilities (a_value: LS_TYPE_HIERARCHY_CAPABILITIES)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_dynamic_registration_capabilities (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_item (a_value: LS_TYPE_HIERARCHY_ITEM)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.name_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.name.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.kind_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.kind.process (Current)
+			if attached a_value.tags as l_tags then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.tags_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_tags.process (Current)
+			end
+			if attached a_value.detail as l_detail then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.detail_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_detail.process (Current)
+			end
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.uri_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.uri.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.range_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.range.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.selection_range_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.selection_range.process (Current)
+			if attached a_value.data as l_data then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_TYPE_HIERARCHY_ITEM}.data_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_data.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_item_list (a_value: LS_TYPE_HIERARCHY_ITEM_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
+	process_type_hierarchy_options (a_value: LS_TYPE_HIERARCHY_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_work_done_progress_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_prepare_params (a_value: LS_TYPE_HIERARCHY_PREPARE_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			process_text_document_location_params (a_value)
+			process_work_done_progress_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_prepare_request (a_value: LS_TYPE_HIERARCHY_PREPARE_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_PREPARE_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_PREPARE_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_PREPARE_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_type_hierarchy_prepare_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_registration_options (a_value: LS_TYPE_HIERARCHY_REGISTRATION_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_text_document_registration_options (a_value)
+			process_work_done_progress_options (a_value)
+			process_static_registration_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_subtypes_params (a_value: LS_TYPE_HIERARCHY_SUBTYPES_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUBTYPES_PARAMS}.item_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.item.process (Current)
+			process_work_done_progress_params (a_value)
+			process_partial_result_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_subtypes_request (a_value: LS_TYPE_HIERARCHY_SUBTYPES_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUBTYPES_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUBTYPES_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUBTYPES_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_type_hierarchy_subtypes_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_supertypes_params (a_value: LS_TYPE_HIERARCHY_SUPERTYPES_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUPERTYPES_PARAMS}.item_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.item.process (Current)
+			process_work_done_progress_params (a_value)
+			process_partial_result_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_type_hierarchy_supertypes_request (a_value: LS_TYPE_HIERARCHY_SUPERTYPES_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUPERTYPES_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUPERTYPES_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_TYPE_HIERARCHY_SUPERTYPES_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_type_hierarchy_supertypes_params (a_value)
 			utf8_string.append_character ('}')
 		end
 
@@ -3484,6 +4382,8 @@ feature {LS_ANY} -- Processing
 
 	process_unregistration_params (a_value: LS_UNREGISTRATION_PARAMS)
 			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
 		do
 			utf8_string.append_character ('{')
 			utf8_string.append_character ('"')
@@ -3660,12 +4560,27 @@ feature {LS_ANY} -- Processing
 			-- Process `a_value`.
 		do
 			utf8_string.append_character ('{')
+			if attached a_value.did_change_configuration as l_did_change_configuration then
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_CAPABILITIES}.did_change_configuration_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_did_change_configuration.process (Current)
+			end
 			if attached a_value.did_change_watched_files as l_did_change_watched_files then
 				utf8_string.append_character ('"')
 				utf8_string.append_string ({LS_WORKSPACE_CAPABILITIES}.did_change_watched_files_name)
 				utf8_string.append_character ('"')
 				utf8_string.append_character (':')
 				l_did_change_watched_files.process (Current)
+			end
+			if attached a_value.symbol as l_symbol then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_CAPABILITIES}.symbol_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_symbol.process (Current)
 			end
 			if attached a_value.configuration as l_configuration then
 				process_comma_if_not_first
@@ -3700,6 +4615,190 @@ feature {LS_ANY} -- Processing
 			-- Process `a_value`.
 		do
 			process_list (a_value)
+		end
+
+	process_workspace_symbol (a_value: LS_WORKSPACE_SYMBOL)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL}.name_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.name.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL}.kind_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.kind.process (Current)
+			if attached a_value.tags as l_tags then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL}.tags_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_tags.process (Current)
+			end
+			if attached a_value.container_name as l_container_name then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL}.container_name_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_container_name.process (Current)
+			end
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL}.location_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.location.process (Current)
+			if attached a_value.data as l_data then
+				utf8_string.append_character (',')
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL}.data_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_data.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_workspace_symbol_capabilities (a_value: LS_WORKSPACE_SYMBOL_CAPABILITIES)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_dynamic_registration_capabilities (a_value)
+			if attached a_value.symbol_kind as l_symbol_kind then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL_CAPABILITIES}.symbol_kind_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_symbol_kind.process (Current)
+			end
+			if attached a_value.tag_support as l_tag_support then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL_CAPABILITIES}.tag_support_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_tag_support.process (Current)
+			end
+			if attached a_value.resolve_support as l_resolve_support then
+				process_comma_if_not_first
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL_CAPABILITIES}.resolve_support_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_resolve_support.process (Current)
+			end
+			utf8_string.append_character ('}')
+		end
+
+	process_workspace_symbol_list (a_value: LS_WORKSPACE_SYMBOL_LIST)
+			-- Process `a_value`.
+		do
+			process_list (a_value)
+		end
+
+	process_workspace_symbol_options (a_value: LS_WORKSPACE_SYMBOL_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			if attached a_value.resolve_provider as l_resolve_provider then
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL_OPTIONS}.resolve_provider_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_resolve_provider.process (Current)
+			end
+			process_work_done_progress_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_workspace_symbol_params (a_value: LS_WORKSPACE_SYMBOL_PARAMS)
+			-- Process `a_value`.
+		require
+			a_value_not_void: a_value /= Void
+		do
+			utf8_string.append_character ('{')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL_PARAMS}.query_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.query.process (Current)
+			process_work_done_progress_params (a_value)
+			process_partial_result_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_workspace_symbol_registration_options (a_value: LS_WORKSPACE_SYMBOL_REGISTRATION_OPTIONS)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			if attached a_value.resolve_provider as l_resolve_provider then
+				utf8_string.append_character ('"')
+				utf8_string.append_string ({LS_WORKSPACE_SYMBOL_REGISTRATION_OPTIONS}.resolve_provider_name)
+				utf8_string.append_character ('"')
+				utf8_string.append_character (':')
+				l_resolve_provider.process (Current)
+			end
+			process_work_done_progress_options (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_workspace_symbol_request (a_value: LS_WORKSPACE_SYMBOL_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			process_workspace_symbol_params (a_value)
+			utf8_string.append_character ('}')
+		end
+
+	process_workspace_symbol_resolve_request (a_value: LS_WORKSPACE_SYMBOL_RESOLVE_REQUEST)
+			-- Process `a_value`.
+		do
+			utf8_string.append_character ('{')
+			process_jsonrpc_version
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL_RESOLVE_REQUEST}.id_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.id.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL_RESOLVE_REQUEST}.method_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.method.process (Current)
+			utf8_string.append_character (',')
+			utf8_string.append_character ('"')
+			utf8_string.append_string ({LS_WORKSPACE_SYMBOL_RESOLVE_REQUEST}.params_name)
+			utf8_string.append_character ('"')
+			utf8_string.append_character (':')
+			a_value.params.process (Current)
+			utf8_string.append_character ('}')
 		end
 
 invariant

@@ -4,7 +4,7 @@
 		"C functions used to implement class DIRECTORY"
 
 	system: "Gobo Eiffel Compiler"
-	copyright: "Copyright (c) 2006-2018, Eric Bezault and others"
+	copyright: "Copyright (c) 2006-2026, Eric Bezault and others"
 	license: "MIT License"
 */
 
@@ -16,6 +16,9 @@
 
 #ifndef EIF_DIR_H
 #include "eif_dir.h"
+#endif
+#ifndef EIF_CONFIG_H
+#include "eif_config.h"
 #endif
 
 #include <sys/stat.h>
@@ -403,7 +406,7 @@ EIF_INTEGER eif_dir_current(EIF_FILENAME a_buffer, EIF_INTEGER a_count)
 	if (cwd) {
 		l_nbytes = (strlen(cwd) + 1) * sizeof(char);
 		if (a_buffer && (a_count >= l_nbytes)) {
-			memcpy(a_buffer, cwd, l_nbytes);
+			GE_memcpy(a_buffer, cwd, l_nbytes);
 		}
 		free(cwd);	/* Not `eif_free', getcwd() call malloc in POSIX.1 */
 	} else {

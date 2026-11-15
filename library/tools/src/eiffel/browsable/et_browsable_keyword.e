@@ -5,7 +5,7 @@
 		"Browsable keywords"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_BROWSABLE_KEYWORD
@@ -14,7 +14,8 @@ inherit
 
 	ET_BROWSABLE_UNQUALIFIED_NAME
 		redefine
-			name
+			name,
+			build_completion
 		end
 
 create
@@ -26,6 +27,23 @@ feature -- Access
 	name: ET_KEYWORD
 			-- AST node corresponding to the Result
 
+	type_base_class: detachable ET_CLASS
+			-- Base class of the type of the browsable name, if any
+		do
+			-- Result := Void
+		end
+
+feature -- Basic operations
+
+	build_completion (a_builder: ET_BROWSABLE_COMPLETION_BUILDER)
+			-- Build list of completion suggestions.
+		do
+			if not is_completion_disabled then
+				a_builder.add_keyword (name, Current)
+			end
+			precursor (a_builder)
+		end
+
 feature -- Output
 
 	append_description_to_string (a_string: STRING_8)
@@ -33,16 +51,12 @@ feature -- Output
 		do
 		end
 
-	definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the current browsable name is defined
-		do
-		end
+feature -- Processing
 
-	type_definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the type of the current browsable name is defined
+	process (a_processor: ET_BROWSABLE_NAME_PROCESSOR)
+			-- Process current name.
 		do
+			a_processor.process_keyword (Current)
 		end
 
 end

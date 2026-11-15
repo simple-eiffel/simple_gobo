@@ -4,7 +4,7 @@
 		"C functions used to implement type information"
 
 	system: "Gobo Eiffel Compiler"
-	copyright: "Copyright (c) 2016-2024, Eric Bezault and others"
+	copyright: "Copyright (c) 2016-2026, Eric Bezault and others"
 	license: "MIT License"
 */
 
@@ -44,7 +44,7 @@ EIF_ENCODED_TYPE GE_encoded_type(EIF_TYPE a_type)
 		/* This code below is just optimized as one move by cl on x86 platforms.
 		 * The else-part below generates non-optimal code with cl.
 		 */
-	memcpy((void*)&l_result, (void*)&a_type, sizeof(EIF_ENCODED_TYPE));
+	GE_memcpy((void*)&l_result, (void*)&a_type, sizeof(EIF_ENCODED_TYPE));
 #else
 		/* This code below is just optimized as one move by gcc/clang on x86 platforms. */
 	l_result = a_type.annotations;
@@ -66,7 +66,7 @@ EIF_TYPE GE_decoded_type(EIF_ENCODED_TYPE a_type)
 		/* This code below is just optimized as one move by cl on x86 platforms.
 		 * The else-part below generates non-optimal code with cl.
 		 */
-	memcpy((void*)&l_result, (void*)&a_type, sizeof(EIF_TYPE));
+	GE_memcpy((void*)&l_result, (void*)&a_type, sizeof(EIF_TYPE));
 #else
 		/* This code below is just optimized as one move by gcc/clang on x86 platforms. */
 	l_result.id = a_type & 0x0000FFFF;
@@ -720,6 +720,14 @@ GE_attribute* GE_attribute_with_name(EIF_TYPE_INDEX a_type, char* a_name)
 	return (GE_attribute*)0;
 }
 #endif
+
+/*
+ * Does `a_type_1' conform to `a_type' and `a_type' conform to `a_type_2'?
+ */
+int GE_encoded_type_is_inbetween(EIF_ENCODED_TYPE a_type, EIF_ENCODED_TYPE a_type_1, EIF_ENCODED_TYPE a_type_2)
+{
+	return (GE_encoded_type_conforms_to(a_type_1, a_type) && GE_encoded_type_conforms_to(a_type, a_type_2));
+}
 
 #ifdef __cplusplus
 }

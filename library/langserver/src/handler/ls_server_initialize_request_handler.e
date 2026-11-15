@@ -5,7 +5,7 @@
 		"LSP server handlers for 'initialize' requests"
 
 	library: "Gobo Eiffel Language Server Protocol Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class LS_SERVER_INITIALIZE_REQUEST_HANDLER
@@ -74,11 +74,17 @@ feature -- Basic operations
 				a_manager.definition_request_handler.set_client_capabilities (l_text_document_capabilities.definition)
 				a_manager.type_definition_request_handler.set_client_capabilities (l_text_document_capabilities.type_definition)
 				a_manager.implementation_request_handler.set_client_capabilities (l_text_document_capabilities.implementation)
+				a_manager.call_hierarchy_prepare_request_handler.set_client_capabilities (l_text_document_capabilities.call_hierarchy)
+				a_manager.type_hierarchy_prepare_request_handler.set_client_capabilities (l_text_document_capabilities.type_hierarchy)
+				a_manager.document_highlight_request_handler.set_client_capabilities (l_text_document_capabilities.document_highlight)
 				a_manager.document_symbol_request_handler.set_client_capabilities (l_text_document_capabilities.document_symbol)
+				a_manager.selection_range_request_handler.set_client_capabilities (l_text_document_capabilities.selection_range)
 				a_manager.publish_diagnostics_notification_handler.set_client_capabilities (l_text_document_capabilities.publish_diagnostics)
 			end
 			if attached a_request.capabilities.workspace as l_workspace_capabilities then
+				a_manager.did_change_configuration_notification_handler.set_client_capabilities (l_workspace_capabilities.did_change_configuration)
 				a_manager.did_change_watched_files_notification_handler.set_client_capabilities (l_workspace_capabilities.did_change_watched_files)
+				a_manager.workspace_symbol_request_handler.set_client_capabilities (l_workspace_capabilities.symbol)
 				a_manager.configuration_request_handler.set_client_capabilities (l_workspace_capabilities.configuration)
 			end
 			create l_server_capabilities.make
@@ -125,8 +131,27 @@ feature -- Basic operations
 			l_server_capabilities.set_type_definition_provider (a_manager.type_definition_request_handler.server_options)
 			a_manager.implementation_request_handler.build_server_options
 			l_server_capabilities.set_implementation_provider (a_manager.implementation_request_handler.server_options)
+			a_manager.call_hierarchy_prepare_request_handler.build_server_options
+			l_server_capabilities.set_call_hierarchy_provider (a_manager.call_hierarchy_prepare_request_handler.server_options)
+			a_manager.type_hierarchy_prepare_request_handler.build_server_options
+			l_server_capabilities.set_type_hierarchy_provider (a_manager.type_hierarchy_prepare_request_handler.server_options)
+			a_manager.document_highlight_request_handler.build_server_options
+			l_server_capabilities.set_document_highlight_provider (a_manager.document_highlight_request_handler.server_options)
 			a_manager.document_symbol_request_handler.build_server_options
 			l_server_capabilities.set_document_symbol_provider (a_manager.document_symbol_request_handler.server_options)
+			a_manager.selection_range_request_handler.build_server_options
+			l_server_capabilities.set_selection_range_provider (a_manager.selection_range_request_handler.server_options)
+			a_manager.workspace_symbol_request_handler.build_server_options
+			a_manager.workspace_symbol_resolve_request_handler.build_server_options
+			if attached {LS_WORKSPACE_SYMBOL_OPTIONS} a_manager.workspace_symbol_request_handler.server_options as l_workspace_symbol_options then
+				l_workspace_symbol_options.set_resolve_provider (a_manager.workspace_symbol_resolve_request_handler.server_options)
+			elseif
+				a_manager.workspace_symbol_request_handler.server_options = {LS_BOOLEAN}.true_ and then
+				attached a_manager.workspace_symbol_resolve_request_handler.server_options as l_resolve_options
+			then
+				a_manager.workspace_symbol_request_handler.set_server_options (create {LS_WORKSPACE_SYMBOL_OPTIONS}.make (l_resolve_options, Void))
+			end
+			l_server_capabilities.set_workspace_symbol_provider (a_manager.workspace_symbol_request_handler.server_options)
 			create l_result.make (l_server_capabilities)
 			create l_response.make_success (a_request.id, l_result)
 			a_manager.send_message (l_response)

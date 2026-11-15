@@ -5,7 +5,7 @@
 		"Eiffel prefix expressions"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 1999-2024, Eric Bezault and others"
+	copyright: "Copyright (c) 1999-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_PREFIX_EXPRESSION
@@ -17,13 +17,16 @@ inherit
 			target as expression
 		undefine
 			reset,
+			is_false_expression,
+			is_true_expression,
 			is_prefix_expression,
 			is_instance_free,
 			has_result,
 			has_address_expression,
 			has_agent,
 			has_typed_object_test,
-			add_old_expressions
+			add_old_expressions,
+			add_formal_arguments
 		end
 
 	ET_UNARY_EXPRESSION
@@ -31,6 +34,8 @@ inherit
 			add_separate_arguments
 		redefine
 			reset,
+			is_false_expression,
+			is_true_expression,
 			is_prefix_expression
 		end
 
@@ -94,6 +99,26 @@ feature -- Status report
 	is_boolean_operator: BOOLEAN
 			-- Is current prefix expression a boolean operator
 			-- on a boolean expression?
+
+	is_false_expression (a_context: ET_TYPE_CONTEXT; a_no_call: BOOLEAN): BOOLEAN
+			-- Can current expression be proven to be False statically when viewed from `a_context'?
+			-- If `a_no_call` is True, then return False if some calls could be executed
+			-- even if current expression can be proven to be False statically.
+		do
+			if name.is_prefix_not or name.is_prefix_not_symbol then
+				Result := expression.is_true_expression (a_context, a_no_call)
+			end
+		end
+
+	is_true_expression (a_context: ET_TYPE_CONTEXT; a_no_call: BOOLEAN): BOOLEAN
+			-- Can current expression be proven to be True statically when viewed from `a_context'?
+			-- If `a_no_call` is True, then return False if some calls could be executed
+			-- even if current expression can be proven to be True statically.
+		do
+			if name.is_prefix_not or name.is_prefix_not_symbol then
+				Result := expression.is_false_expression (a_context, a_no_call)
+			end
+		end
 
 	is_prefix_expression: BOOLEAN = True
 			-- Is current expression a prefix expression?

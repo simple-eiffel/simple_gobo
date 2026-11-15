@@ -13,10 +13,10 @@
 
 .EXAMPLE
 	# Install ISE Eiffel tools from the GitHub Actions pipeline:
-	install_ise.ps1 github zig
+	install_ise.ps1 github msc
 
 .NOTES
-	Copyright: "Copyright (c) 2021-2024, Eric Bezault and others"
+	Copyright: "Copyright (c) 2021-2026, Eric Bezault and others"
 	License: "MIT License"
 #>
 
@@ -38,8 +38,8 @@ if ($LastExitCode -ne 0) {
 	exit $LastExitCode
 }
 
-$GOBO_CI_ISE_VERSION = "25.02"
-$GOBO_CI_ISE_REVISION = "rev_98732"
+$GOBO_CI_ISE_VERSION = "26.09"
+$GOBO_CI_ISE_REVISION = "rev_99100"
 
 switch ($GOBO_CI_OS) {
 	"linux" {
@@ -59,7 +59,11 @@ switch ($GOBO_CI_OS) {
 		}
 	}
 	"macos" {
-		$env:ISE_PLATFORM = "macosx-x86-64"
+		if ($GOBO_CI_ARCH -eq "arm64") {
+			$env:ISE_PLATFORM = "macosx-arm64"
+		} else {
+			$env:ISE_PLATFORM = "macosx-x86-64"
+		}
 		$env:ISE_C_COMPILER = "clang"
 		$GOBO_CI_ISE_ARCHIVE_EXTENSION = ".tar.bz2"
 		if ($CCompiler -ne "clang") {

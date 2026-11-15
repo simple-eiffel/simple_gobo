@@ -5,7 +5,7 @@
 		"Browsable names of formal parameters"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_BROWSABLE_FORMAL_PARAMETER_NAME
@@ -14,8 +14,7 @@ inherit
 
 	ET_BROWSABLE_NAMED_TYPE
 		redefine
-			append_description_to_string,
-			definition_ast_node
+			append_description_to_string
 		end
 
 create
@@ -48,6 +47,14 @@ feature -- Access
 	formal_parameter: ET_FORMAL_PARAMETER
 			-- Formal parameter
 
+	type_base_class: ET_CLASS
+			-- Base class of the type of the browsable name, if any
+		do
+			Result := formal_parameter.base_class (current_class)
+		ensure then
+			type_base_class_not_void: Result /= Void
+		end
+
 feature -- Output
 
 	append_description_to_string (a_string: STRING_8)
@@ -56,11 +63,12 @@ feature -- Output
 			append_formal_parameter_description_to_string (formal_parameter, a_string)
 		end
 
-	definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the current browsable name is defined
+feature -- Processing
+
+	process (a_processor: ET_BROWSABLE_NAME_PROCESSOR)
+			-- Process current name.
 		do
-			Result := [formal_parameter.name, current_class]
+			a_processor.process_formal_parameter_name (Current)
 		end
 
 invariant

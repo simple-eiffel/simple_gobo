@@ -5,7 +5,7 @@
 		"Browsable names of inline separate arguments"
 
 	library: "Gobo Eiffel Tools Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class ET_BROWSABLE_INLINE_SEPARATE_ARGUMENT_NAME
@@ -65,6 +65,14 @@ feature -- Access
 			end
 		end
 
+	type_base_class: ET_CLASS
+			-- Base class of the type of the browsable name, if any
+		do
+			Result := type.base_class (current_class)
+		ensure then
+			type_base_class_not_void: Result /= Void
+		end
+
 feature -- Output
 
 	append_description_to_string (a_string: STRING_8)
@@ -78,23 +86,12 @@ feature -- Output
 			type.named_type (current_class).append_canonical_with_leading_type_mark_to_string (a_string)
 		end
 
-	definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the current browsable name is defined
-		do
-			if attached inline_separate_argument as l_inline_separate_argument then
-				Result := [l_inline_separate_argument.name, current_class]
-			end
-		end
+feature -- Processing
 
-	type_definition_ast_node: detachable TUPLE [ast_node: ET_AST_NODE; class_impl: ET_CLASS]
-			-- AST node, and its implementation class, where
-			-- the type of the current browsable name is defined
-		local
-			l_base_class: ET_CLASS
+	process (a_processor: ET_BROWSABLE_NAME_PROCESSOR)
+			-- Process current name.
 		do
-			l_base_class := type.base_class (current_class)
-			Result := [l_base_class.name, l_base_class]
+			a_processor.process_inline_separate_argument_name (Current)
 		end
 
 invariant

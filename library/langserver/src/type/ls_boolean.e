@@ -5,7 +5,7 @@
 		"LSP boolean values"
 
 	library: "Gobo Eiffel Language Server Protocol Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class LS_BOOLEAN
@@ -22,6 +22,16 @@ inherit
 			is_equal
 		end
 
+	LS_OPTIONAL_DOCUMENT_HIGHLIGHT_OPTIONS
+		redefine
+			is_equal
+		end
+
+	LS_OPTIONAL_SELECTION_RANGE_OPTIONS
+		redefine
+			is_equal
+		end
+		
 	LS_OPTIONAL_TYPE_DEFINITION_OPTIONS
 		redefine
 			is_equal
@@ -67,7 +77,22 @@ inherit
 			is_equal
 		end
 
+	LS_OPTIONAL_WORKSPACE_SYMBOL_OPTIONS
+		redefine
+			is_equal
+		end
+
 	LS_CONFIGURATION_CAPABILITIES
+		redefine
+			is_equal
+		end
+
+	LS_OPTIONAL_CALL_HIERARCHY_OPTIONS
+		redefine
+			is_equal
+		end
+
+	LS_OPTIONAL_TYPE_HIERARCHY_OPTIONS
 		redefine
 			is_equal
 		end

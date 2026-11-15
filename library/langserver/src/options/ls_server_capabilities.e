@@ -5,7 +5,7 @@
 		"LSP server capabilities"
 
 	library: "Gobo Eiffel Language Server Protocol Library"
-	copyright: "Copyright (c) 2025, Eric Bezault and others"
+	copyright: "Copyright (c) 2025-2026, Eric Bezault and others"
 	license: "MIT License"
 
 class LS_SERVER_CAPABILITIES
@@ -51,8 +51,23 @@ feature -- Access
 	implementation_provider: detachable LS_OPTIONAL_IMPLEMENTATION_OPTIONS
 			-- The server provides go to implementation support.
 
+	document_highlight_provider: detachable LS_OPTIONAL_DOCUMENT_HIGHLIGHT_OPTIONS
+			-- The server provides document highlight  support.
+
 	document_symbol_provider: detachable LS_OPTIONAL_DOCUMENT_SYMBOL_OPTIONS
 			-- The server provides document symbol support.
+
+	selection_range_provider: detachable LS_OPTIONAL_SELECTION_RANGE_OPTIONS
+			-- The server provides selection range support.
+
+	call_hierarchy_provider: detachable LS_OPTIONAL_CALL_HIERARCHY_OPTIONS
+			-- The server provides call hierarchy support.
+
+	type_hierarchy_provider: detachable LS_OPTIONAL_TYPE_HIERARCHY_OPTIONS
+			-- The server provides type hierarchy support.
+
+	workspace_symbol_provider: detachable LS_OPTIONAL_WORKSPACE_SYMBOL_OPTIONS
+			-- The server provides workspace symbol support.
 
 feature -- Setting
 
@@ -112,12 +127,52 @@ feature -- Setting
 			implementation_provider_set: implementation_provider = a_implementation_provider
 		end
 
+	set_document_highlight_provider (a_document_highlight_provider: like document_highlight_provider)
+			-- Set `document_highlight_provider` to `a_document_highlight_provider`.
+		do
+			document_highlight_provider := a_document_highlight_provider
+		ensure
+			document_highlight_provider_set: document_highlight_provider = a_document_highlight_provider
+		end
+
 	set_document_symbol_provider (a_document_symbol_provider: like document_symbol_provider)
 			-- Set `document_symbol_provider` to `a_document_symbol_provider`.
 		do
 			document_symbol_provider := a_document_symbol_provider
 		ensure
 			document_symbol_provider_set: document_symbol_provider = a_document_symbol_provider
+		end
+
+	set_selection_range_provider (a_selection_range_provider: like selection_range_provider)
+			-- Set `selection_range_provider` to `a_dselection_range_provider`.
+		do
+			selection_range_provider := a_selection_range_provider
+		ensure
+			selection_range_provider_set: selection_range_provider = a_selection_range_provider
+		end
+
+	set_call_hierarchy_provider (a_call_hierarchy_provider: like call_hierarchy_provider)
+			-- Set `call_hierarchy_provider` to `a_call_hierarchy_provider`.
+		do
+			call_hierarchy_provider := a_call_hierarchy_provider
+		ensure
+			call_hierarchy_provider_set: call_hierarchy_provider = a_call_hierarchy_provider
+		end
+
+	set_type_hierarchy_provider (a_type_hierarchy_provider: like type_hierarchy_provider)
+			-- Set `type_hierarchy_provider` to `a_type_hierarchy_provider`.
+		do
+			type_hierarchy_provider := a_type_hierarchy_provider
+		ensure
+			type_hierarchy_provider_set: type_hierarchy_provider = a_type_hierarchy_provider
+		end
+
+	set_workspace_symbol_provider (a_workspace_symbol_provider: like workspace_symbol_provider)
+			-- Set `workspace_symbol_provider` to `a_workspace_symbol_provider`.
+		do
+			workspace_symbol_provider := a_workspace_symbol_provider
+		ensure
+			workspace_symbol_provider_set: workspace_symbol_provider = a_workspace_symbol_provider
 		end
 
 feature -- Field names
@@ -129,7 +184,12 @@ feature -- Field names
 	definition_provider_name: STRING_8 = "definitionProvider"
 	type_definition_provider_name: STRING_8 = "typeDefinitionProvider"
 	implementation_provider_name: STRING_8 = "implementationProvider"
+	document_highlight_provider_name: STRING_8 = "documentHighlightProvider"
 	document_symbol_provider_name: STRING_8 = "documentSymbolProvider"
+	selection_range_provider_name: STRING_8 = "selectionRangeProvider"
+	call_hierarchy_provider_name: STRING_8 = "callHierarchyProvider"
+	type_hierarchy_provider_name: STRING_8 = "typeHierarchyProvider"
+	workspace_symbol_provider_name: STRING_8 = "workspaceSymbolProvider"
 			-- Field names
 
 feature -- Processing
